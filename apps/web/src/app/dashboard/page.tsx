@@ -52,7 +52,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
-              <Bot className="h-4 w-4 text-muted-foreground" />
+              <Bot className="h-4 w-4 text-white/60" />
             </CardHeader>
             <CardContent>
               {usageLoading ? (
@@ -62,7 +62,7 @@ export default function DashboardPage() {
                   <div className="text-2xl font-bold">
                     {usageData?.agents.total ?? 0}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-white/60">
                     of {usageData?.agents.limit ?? 0} available
                   </p>
                 </>
@@ -81,7 +81,7 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <div className="text-2xl font-bold">{runningAgents}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-white/60">
                     {pausedAgents} paused, {errorAgents} errors
                   </p>
                 </>
@@ -92,7 +92,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Connections</CardTitle>
-              <Link2 className="h-4 w-4 text-muted-foreground" />
+              <Link2 className="h-4 w-4 text-white/60" />
             </CardHeader>
             <CardContent>
               {connectionsLoading ? (
@@ -100,7 +100,7 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <div className="text-2xl font-bold">{connections.length}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-white/60">
                     OAuth & wallets linked
                   </p>
                 </>
@@ -111,7 +111,7 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Plan</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-white/60" />
             </CardHeader>
             <CardContent>
               {usageLoading ? (
@@ -122,7 +122,7 @@ export default function DashboardPage() {
                     {usageData?.plan ?? 'Free'}
                   </div>
                   <Link href="/dashboard/billing">
-                    <span className="text-xs text-primary hover:underline">
+                    <span className="text-xs text-purple-400 hover:underline">
                       Upgrade plan
                     </span>
                   </Link>
@@ -149,9 +149,9 @@ export default function DashboardPage() {
               </div>
             ) : agents.length === 0 ? (
               <div className="text-center py-8">
-                <Bot className="mx-auto h-12 w-12 text-muted-foreground" />
+                <Bot className="mx-auto h-12 w-12 text-white/60" />
                 <h3 className="mt-4 text-lg font-semibold">No agents yet</h3>
-                <p className="text-muted-foreground">
+                <p className="text-white/60">
                   Deploy your first AI agent to get started
                 </p>
                 <Link href="/dashboard/agents/new">
@@ -164,15 +164,15 @@ export default function DashboardPage() {
                   <Link
                     key={agent.id}
                     href={`/dashboard/agents/${agent.id}`}
-                    className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between rounded-lg border p-4 hover:bg-white/5 transition-colors"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <Bot className="h-5 w-5 text-primary" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20">
+                        <Bot className="h-5 w-5 text-purple-400" />
                       </div>
                       <div>
                         <p className="font-medium">{agent.name}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-white/60">
                           {agent.type.replace(/-/g, ' ')}
                         </p>
                       </div>
@@ -180,7 +180,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-4">
                       <StatusBadge status={agent.status} />
                       {agent.status === 'error' && agent.lastError && (
-                        <span className="text-xs text-destructive truncate max-w-[200px]">
+                        <span className="text-xs text-red-400 truncate max-w-[200px]">
                           {agent.lastError}
                         </span>
                       )}

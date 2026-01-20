@@ -68,14 +68,14 @@ export default function BillingPage() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/20">
                   {currentPlan && PLAN_ICONS[currentPlan.name.toLowerCase()] ? (
                     (() => {
                       const Icon = PLAN_ICONS[currentPlan.name.toLowerCase()];
-                      return <Icon className="h-6 w-6 text-primary" />;
+                      return <Icon className="h-6 w-6 text-purple-400" />;
                     })()
                   ) : (
-                    <Zap className="h-6 w-6 text-primary" />
+                    <Zap className="h-6 w-6 text-purple-400" />
                   )}
                 </div>
                 <div>
@@ -83,7 +83,7 @@ export default function BillingPage() {
                     {currentPlan?.name ?? 'Free'} Plan
                   </h3>
                   {subscription && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-white/60">
                       {subscription.status === 'active' ? (
                         <>
                           Renews on{' '}
@@ -116,9 +116,9 @@ export default function BillingPage() {
                         {usageData.agents.total} / {usageData.agents.limit}
                       </span>
                     </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-primary rounded-full transition-all"
+                        className="h-full bg-purple-500 rounded-full transition-all"
                         style={{
                           width: `${Math.min(
                             (usageData.agents.total / usageData.agents.limit) * 100,
@@ -146,11 +146,11 @@ export default function BillingPage() {
               return (
                 <Card
                   key={planId}
-                  className={isCurrentPlan ? 'border-primary' : ''}
+                  className={isCurrentPlan ? 'border-purple-500' : ''}
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <Icon className="h-8 w-8 text-primary" />
+                      <Icon className="h-8 w-8 text-purple-400" />
                       {isCurrentPlan && <Badge>Current</Badge>}
                     </div>
                     <CardTitle className="capitalize">{plan.name}</CardTitle>
@@ -158,7 +158,7 @@ export default function BillingPage() {
                       {plan.price !== null ? (
                         <>
                           ${plan.price}
-                          <span className="text-sm font-normal text-muted-foreground">
+                          <span className="text-sm font-normal text-white/60">
                             /month
                           </span>
                         </>
@@ -172,7 +172,7 @@ export default function BillingPage() {
                     <ul className="space-y-3">
                       {plan.features?.map((feature: string, i: number) => (
                         <li key={i} className="flex items-center gap-2 text-sm">
-                          <Check className="h-4 w-4 text-primary" />
+                          <Check className="h-4 w-4 text-purple-400" />
                           {feature}
                         </li>
                       ))}
@@ -199,7 +199,7 @@ export default function BillingPage() {
             <CardDescription>Your recent invoices and payments</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-center py-8 text-muted-foreground">
+            <p className="text-center py-8 text-white/60">
               No billing history yet.
             </p>
           </CardContent>
@@ -217,7 +217,7 @@ export default function BillingPage() {
                 Manage Payment Methods
               </Button>
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-white/60">
                 Add a payment method when you upgrade to a paid plan.
               </p>
             )}

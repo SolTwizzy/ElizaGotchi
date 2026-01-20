@@ -98,7 +98,7 @@ function ProviderIcon({ provider }: { provider: string }) {
   const config = OAUTH_PROVIDERS.find((p) => p.id === provider);
   if (!config) {
     return (
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
         <Link2 className="h-5 w-5" />
       </div>
     );

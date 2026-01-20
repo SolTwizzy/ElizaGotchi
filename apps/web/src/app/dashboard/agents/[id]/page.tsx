@@ -102,7 +102,7 @@ export default function AgentDetailPage() {
       <div className="flex flex-col">
         <Header title="Agent Not Found" />
         <div className="p-6 text-center">
-          <p className="text-muted-foreground">This agent does not exist.</p>
+          <p className="text-white/60">This agent does not exist.</p>
           <Link href="/dashboard/agents">
             <Button className="mt-4">Back to Agents</Button>
           </Link>
@@ -129,8 +129,8 @@ export default function AgentDetailPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <Bot className="h-6 w-6 text-primary" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/20">
+                  <Bot className="h-6 w-6 text-purple-400" />
                 </div>
                 <div>
                   <CardTitle className="text-xl">{agent.name}</CardTitle>
@@ -145,7 +145,7 @@ export default function AgentDetailPage() {
           <CardContent>
             {/* Error message */}
             {agent.status === 'error' && agent.lastError && (
-              <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 text-red-400 text-sm">
                 {agent.lastError}
               </div>
             )}
@@ -223,7 +223,7 @@ export default function AgentDetailPage() {
               </Link>
               <Button
                 variant="outline"
-                className="gap-2 text-destructive hover:text-destructive"
+                className="gap-2 text-red-400 hover:text-red-300"
                 onClick={() => setDeleteOpen(true)}
               >
                 <Trash2 className="h-4 w-4" />
@@ -234,7 +234,7 @@ export default function AgentDetailPage() {
             {/* Metadata */}
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-sm font-medium text-white/60">
                   Created
                 </p>
                 <p className="text-sm">
@@ -242,7 +242,7 @@ export default function AgentDetailPage() {
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-sm font-medium text-white/60">
                   Last Updated
                 </p>
                 <p className="text-sm">
@@ -297,7 +297,7 @@ export default function AgentDetailPage() {
                     ))}
                   </div>
                 ) : logs.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">
+                  <p className="text-center py-8 text-white/60">
                     No logs yet. Start the agent to see activity.
                   </p>
                 ) : (
@@ -305,9 +305,9 @@ export default function AgentDetailPage() {
                     {logs.map((log) => (
                       <div
                         key={log.id}
-                        className="flex items-start gap-3 p-2 rounded hover:bg-muted"
+                        className="flex items-start gap-3 p-2 rounded hover:bg-white/5"
                       >
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="text-xs text-white/60 whitespace-nowrap">
                           {new Date(log.createdAt).toLocaleTimeString()}
                         </span>
                         <LogLevelBadge level={log.level} />
@@ -329,7 +329,7 @@ export default function AgentDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <pre className="p-4 rounded-lg bg-muted overflow-auto text-sm">
+                <pre className="p-4 rounded-lg bg-white/5 overflow-auto text-sm">
                   {JSON.stringify(agent.config, null, 2)}
                 </pre>
                 <Link href={`/dashboard/agents/${id}/edit`}>
@@ -348,7 +348,7 @@ export default function AgentDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-center py-8 text-muted-foreground">
+                <p className="text-center py-8 text-white/60">
                   Activity tracking coming soon.
                 </p>
               </CardContent>
@@ -371,7 +371,7 @@ export default function AgentDetailPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-red-600 text-white hover:bg-red-700"
             >
               Delete
             </AlertDialogAction>

@@ -8,6 +8,8 @@ import { DeviceScreen } from './DeviceScreen';
 import { DeviceButtons } from './DeviceButtons';
 import { getAgentColors } from './sprites/pixelSprites';
 import { useSound } from './SoundManager';
+import { Planet, getPlanetForAgentType } from './planets';
+import { FloatingLabel } from './FloatingLabel';
 import type { Agent } from '@/lib/api';
 
 interface TamagotchiDeviceProps {
@@ -35,6 +37,9 @@ export function TamagotchiDevice({
 
   // Get colors based on agent type
   const colors = useMemo(() => getAgentColors(agent.type), [agent.type]);
+
+  // Get planet configuration for this agent type
+  const planetConfig = useMemo(() => getPlanetForAgentType(agent.type), [agent.type]);
 
   // Calculate health and activity levels based on status
   const healthLevel = useMemo(() => {
@@ -119,6 +124,24 @@ export function TamagotchiDevice({
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
     >
+      {/* Floating label above the device */}
+      <FloatingLabel
+        name={agent.name}
+        agentType={agent.type}
+        planetName={planetConfig.name}
+        position={[0, 1.3, 0]}
+        isSelected={isSelected}
+        status={agent.status}
+      />
+
+      {/* Planet orbiting behind the device */}
+      <Planet
+        config={planetConfig}
+        position={[isSelected ? 1.2 : 0.8, 0.3, -0.8]}
+        scale={isSelected ? 0.4 : 0.25}
+        isActive={isSelected}
+      />
+
       {/* Main shell */}
       <DeviceShell
         color={colors.shell}
@@ -142,9 +165,6 @@ export function TamagotchiDevice({
         onCClick={onSettings}
         disabled={!isSelected}
       />
-
-      {/* Name label (3D text would be better, using HTML overlay instead) */}
-      {/* Agent name shown in HTML overlay when selected */}
     </group>
   );
 }

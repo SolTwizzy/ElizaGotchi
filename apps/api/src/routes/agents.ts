@@ -8,7 +8,6 @@ import { AGENT_TYPES, PLANS } from '@elizagotchi/shared';
 import { requireAuth } from '../middleware/auth';
 import { agentOrchestrator } from '../services/agent-orchestrator';
 import type { AuthenticatedContext } from '../types';
-import { generateId } from 'lucia';
 
 export const agentRoutes = new Hono<AuthenticatedContext>();
 
@@ -80,7 +79,7 @@ agentRoutes.post('/', zValidator('json', createAgentSchema), async (c) => {
     });
   }
 
-  const agentId = generateId(15);
+  const agentId = crypto.randomUUID();
 
   const [agent] = await db
     .insert(agents)

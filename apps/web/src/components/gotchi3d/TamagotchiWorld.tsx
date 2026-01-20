@@ -4,8 +4,10 @@ import { useState, useCallback } from 'react';
 import { TamagotchiCanvas } from './TamagotchiCanvas';
 import { SoundProvider, useSound } from './SoundManager';
 import { AgentChatArea } from '../gotchi/agent-chat-area';
+import { HarvestOverlay } from './HarvestOverlay';
+import { getPlanetForAgentType } from './planets';
 import { Button } from '@/components/ui/button';
-import { X, ArrowLeft, Play, Pause, Square, RotateCcw, Settings } from 'lucide-react';
+import { X, ArrowLeft, Play, Pause, Square, RotateCcw, Settings, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Agent } from '@/lib/api';
 
@@ -32,6 +34,8 @@ function TamagotchiWorldInner({
 }: TamagotchiWorldProps) {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const [isHarvesting, setIsHarvesting] = useState(false);
+  const [harvestQuery, setHarvestQuery] = useState('');
   const { playSound } = useSound();
 
   const handleSelectAgent = useCallback((agent: Agent) => {
@@ -88,6 +92,27 @@ function TamagotchiWorldInner({
       onRestart(selectedAgent);
     }
   }, [selectedAgent, onRestart, playSound]);
+
+  // Handle sending message with harvest animation
+  const handleSendMessage = useCallback((agent: Agent, message: string) => {
+    setHarvestQuery(message);
+    setIsHarvesting(true);
+    playSound('start');
+  }, [playSound]);
+
+  const handleHarvestComplete = useCallback((result: string) => {
+    setIsHarvesting(false);
+    if (selectedAgent) {
+      onSendMessage(selectedAgent, harvestQuery);
+    }
+    playSound('happy');
+  }, [selectedAgent, harvestQuery, onSendMessage, playSound]);
+
+  const handleHarvestCancel = useCallback(() => {
+    setIsHarvesting(false);
+    setHarvestQuery('');
+    playSound('click');
+  }, [playSound]);
 
   // Update selected agent if it changes in the agents array
   const currentSelectedAgent = selectedAgent
@@ -235,16 +260,60 @@ function TamagotchiWorldInner({
             </div>
           </div>
 
+          {/* Planet info */}
+          <div className="px-4 py-3 border-b border-white/10 bg-gradient-to-r from-purple-900/20 to-pink-900/20">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{
+                  background: `linear-gradient(135deg, ${getPlanetForAgentType(currentSelectedAgent.type).color}, ${getPlanetForAgentType(currentSelectedAgent.type).atmosphereColor})`,
+                  boxShadow: `0 0 10px ${getPlanetForAgentType(currentSelectedAgent.type).emissive}`,
+                }}
+              >
+                <span className="text-sm">🪐</span>
+              </div>
+              <div>
+                <div className="text-xs text-purple-400 uppercase tracking-wider">Home Planet</div>
+                <div className="text-sm font-medium text-white">
+                  {getPlanetForAgentType(currentSelectedAgent.type).name}
+                </div>
+              </div>
+              <div className="ml-auto">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="gap-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                  onClick={() => setShowChat(true)}
+                >
+                  <Rocket className="w-4 h-4" />
+                  Launch Mission
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* Chat area */}
-          <div className="flex-1 h-[calc(100%-200px)]">
+          <div className="flex-1 h-[calc(100%-250px)]">
             <AgentChatArea
-              agentId={currentSelectedAgent.id}
+              agentType={currentSelectedAgent.type}
               agentName={currentSelectedAgent.name}
               status={currentSelectedAgent.status}
-              onSendMessage={(msg) => onSendMessage(currentSelectedAgent, msg)}
+              onSendMessage={(msg) => handleSendMessage(currentSelectedAgent, msg)}
             />
           </div>
         </div>
+      )}
+
+      {/* Harvest Overlay - fullscreen planet travel animation */}
+      {currentSelectedAgent && (
+        <HarvestOverlay
+          isActive={isHarvesting}
+          agentType={currentSelectedAgent.type}
+          agentName={currentSelectedAgent.name}
+          query={harvestQuery}
+          onComplete={handleHarvestComplete}
+          onCancel={handleHarvestCancel}
+        />
       )}
 
       {/* Instructions overlay (when no agent selected) */}

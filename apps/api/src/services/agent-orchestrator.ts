@@ -17,6 +17,7 @@ interface RunningAgent {
   runtime: AgentRuntime | ElizaRuntime;
   startedAt: Date;
   lastHeartbeat: Date;
+  heartbeatIntervalId?: ReturnType<typeof setInterval>;
 }
 
 class AgentOrchestrator {
@@ -166,11 +167,20 @@ class AgentOrchestrator {
 
       await runtime.start();
 
+      // Create heartbeat interval to keep agent alive
+      const heartbeatIntervalId = setInterval(() => {
+        const runningAgent = this.runningAgents.get(agentId);
+        if (runningAgent) {
+          runningAgent.lastHeartbeat = new Date();
+        }
+      }, 30000); // Update heartbeat every 30 seconds
+
       // Store running agent
       this.runningAgents.set(agentId, {
         runtime,
         startedAt: new Date(),
         lastHeartbeat: new Date(),
+        heartbeatIntervalId,
       });
 
       // Update status to running
@@ -198,6 +208,10 @@ class AgentOrchestrator {
 
     const runningAgent = this.runningAgents.get(agentId);
     if (runningAgent) {
+      // Clear heartbeat interval
+      if (runningAgent.heartbeatIntervalId) {
+        clearInterval(runningAgent.heartbeatIntervalId);
+      }
       await runningAgent.runtime.stop();
       this.runningAgents.delete(agentId);
     }
@@ -333,6 +347,10 @@ class AgentOrchestrator {
     // Stop all running agents
     for (const [agentId, agent] of this.runningAgents) {
       try {
+        // Clear heartbeat interval
+        if (agent.heartbeatIntervalId) {
+          clearInterval(agent.heartbeatIntervalId);
+        }
         await agent.runtime.stop();
         await this.updateAgentStatus(agentId, 'stopped');
       } catch (error) {

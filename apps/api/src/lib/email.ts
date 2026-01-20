@@ -1,17 +1,26 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid crash when RESEND_API_KEY is not set
+let resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+}
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'ElizaGotchi <noreply@elizagotchi.fun>';
 
 export async function sendWelcomeEmail(to: string, name: string) {
-  if (!process.env.RESEND_API_KEY) {
+  const client = getResend();
+  if (!client) {
     console.log(`[Email] RESEND_API_KEY not set - skipping welcome email to ${to}`);
     return;
   }
 
   try {
-    await resend.emails.send({
+    await client.emails.send({
       from: FROM_EMAIL,
       to,
       subject: 'Welcome to ElizaGotchi OS!',
@@ -39,7 +48,8 @@ export async function sendWelcomeEmail(to: string, name: string) {
 }
 
 export async function sendPasswordResetEmail(to: string, resetToken: string) {
-  if (!process.env.RESEND_API_KEY) {
+  const client = getResend();
+  if (!client) {
     console.log(`[Email] RESEND_API_KEY not set - skipping reset email to ${to}`);
     console.log(`[Email] Reset token: ${resetToken}`);
     return;
@@ -48,7 +58,7 @@ export async function sendPasswordResetEmail(to: string, resetToken: string) {
   const resetUrl = `${process.env.FRONTEND_URL || 'https://elizagotchi.fun'}/reset-password?token=${resetToken}`;
 
   try {
-    await resend.emails.send({
+    await client.emails.send({
       from: FROM_EMAIL,
       to,
       subject: 'Reset your ElizaGotchi password',

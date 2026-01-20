@@ -61,7 +61,7 @@ export default function EditAgentPage() {
       <div className="flex flex-col">
         <Header title="Agent Not Found" />
         <div className="p-6 text-center">
-          <p className="text-muted-foreground">This agent does not exist.</p>
+          <p className="text-white/60">This agent does not exist.</p>
           <Link href="/dashboard/agents">
             <Button className="mt-4">Back to Agents</Button>
           </Link>
@@ -85,8 +85,8 @@ export default function EditAgentPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Bot className="h-5 w-5 text-primary" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20">
+                <Bot className="h-5 w-5 text-purple-400" />
               </div>
               <div>
                 <CardTitle>{typeConfig.name}</CardTitle>
@@ -117,7 +117,7 @@ export default function EditAgentPage() {
                 <Label htmlFor={key} className="capitalize">
                   {key.replace(/([A-Z])/g, ' $1').trim()}
                   {schema.required && (
-                    <span className="text-destructive">*</span>
+                    <span className="text-red-400">*</span>
                   )}
                 </Label>
                 {schema.type === 'array' ? (
@@ -173,7 +173,7 @@ export default function EditAgentPage() {
                   />
                 )}
                 {schema.description && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-white/50">
                     {schema.description}
                   </p>
                 )}

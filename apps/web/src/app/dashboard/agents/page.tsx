@@ -77,8 +77,8 @@ function AgentCard({ agent }: { agent: Agent }) {
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-start justify-between pb-2">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Bot className="h-5 w-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20">
+              <Bot className="h-5 w-5 text-purple-400" />
             </div>
             <div>
               <Link href={`/dashboard/agents/${agent.id}`}>
@@ -132,7 +132,7 @@ function AgentCard({ agent }: { agent: Agent }) {
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-destructive"
+                className="text-red-400"
                 onClick={() => setDeleteOpen(true)}
               >
                 <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -143,12 +143,12 @@ function AgentCard({ agent }: { agent: Agent }) {
         <CardContent>
           <div className="flex items-center justify-between">
             <StatusBadge status={agent.status} />
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-white/60">
               Updated {new Date(agent.updatedAt).toLocaleDateString()}
             </span>
           </div>
           {agent.status === 'error' && agent.lastError && (
-            <p className="mt-2 text-xs text-destructive truncate">
+            <p className="mt-2 text-xs text-red-400 truncate">
               {agent.lastError}
             </p>
           )}
@@ -168,7 +168,7 @@ function AgentCard({ agent }: { agent: Agent }) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-red-600 text-white hover:bg-red-700"
             >
               Delete
             </AlertDialogAction>
@@ -213,7 +213,7 @@ export default function AgentsPage() {
         {/* Filters */}
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/60" />
             <Input
               placeholder="Search agents..."
               value={search}
@@ -262,11 +262,11 @@ export default function AgentsPage() {
           </div>
         ) : filteredAgents.length === 0 ? (
           <div className="text-center py-12">
-            <Bot className="mx-auto h-12 w-12 text-muted-foreground" />
+            <Bot className="mx-auto h-12 w-12 text-white/60" />
             <h3 className="mt-4 text-lg font-semibold">
               {search || filter ? 'No matching agents' : 'No agents yet'}
             </h3>
-            <p className="text-muted-foreground">
+            <p className="text-white/60">
               {search || filter
                 ? 'Try adjusting your filters'
                 : 'Deploy your first AI agent to get started'}

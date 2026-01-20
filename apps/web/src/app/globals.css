@@ -62,14 +62,6 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 262 83% 58%;
     --radius: 0.5rem;
-
-    /* Windows 2000 colors - for homepage only */
-    --win-bg: #3a6ea5;
-    --win-gray: #c0c0c0;
-    --win-dark: #808080;
-    --win-light: #ffffff;
-    --win-title: linear-gradient(180deg, #0a246a 0%, #a6caf0 100%);
-    --win-button: #c0c0c0;
   }
 }
 

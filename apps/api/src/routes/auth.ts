@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { eq, or } from 'drizzle-orm';
+import { eq, or, and, gt } from 'drizzle-orm';
 import { lucia } from '../lib/auth';
-import { db, users, subscriptions } from '@elizagotchi/database';
+import { db, users, subscriptions, passwordResetTokens } from '@elizagotchi/database';
 import { sessionMiddleware, requireAuth } from '../middleware/auth';
+import { sendWelcomeEmail, sendPasswordResetEmail } from '../lib/email';
 import type { AppContext } from '../types';
 import { generateId } from 'lucia';
 import { z } from 'zod';
@@ -78,6 +79,9 @@ authRoutes.post('/signup', async (c) => {
     maxAgents: 1,
     maxMessagesPerMonth: 100,
   });
+
+  // Send welcome email (async, don't wait)
+  sendWelcomeEmail(email, name || email.split('@')[0]);
 
   // Create session
   const session = await lucia.createSession(userId, {});
@@ -227,4 +231,96 @@ authRoutes.post('/wallet/verify', async (c) => {
   c.header('Set-Cookie', cookie.serialize());
 
   return c.json({ success: true, user });
+});
+
+// Forgot Password - Request reset link
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+authRoutes.post('/forgot-password', async (c) => {
+  const body = await c.req.json();
+  const result = forgotPasswordSchema.safeParse(body);
+
+  if (!result.success) {
+    throw new HTTPException(400, { message: 'Invalid email' });
+  }
+
+  const { email } = result.data;
+
+  // Find user
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, email),
+  });
+
+  // Always return success to prevent email enumeration
+  if (!user) {
+    return c.json({ success: true });
+  }
+
+  // Generate reset token
+  const token = crypto.randomUUID() + '-' + crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  // Store token
+  await db.insert(passwordResetTokens).values({
+    userId: user.id,
+    token,
+    expiresAt,
+  });
+
+  // Send password reset email
+  sendPasswordResetEmail(email, token);
+
+  return c.json({ success: true });
+});
+
+// Reset Password - Set new password with token
+const resetPasswordSchema = z.object({
+  token: z.string(),
+  password: z.string().min(8),
+});
+
+authRoutes.post('/reset-password', async (c) => {
+  const body = await c.req.json();
+  const result = resetPasswordSchema.safeParse(body);
+
+  if (!result.success) {
+    throw new HTTPException(400, { message: 'Invalid input' });
+  }
+
+  const { token, password } = result.data;
+
+  // Find valid token
+  const resetToken = await db.query.passwordResetTokens.findFirst({
+    where: and(
+      eq(passwordResetTokens.token, token),
+      gt(passwordResetTokens.expiresAt, new Date())
+    ),
+  });
+
+  if (!resetToken || resetToken.usedAt) {
+    throw new HTTPException(400, { message: 'Invalid or expired reset token' });
+  }
+
+  // Hash new password
+  const passwordHash = await Bun.password.hash(password, {
+    algorithm: 'bcrypt',
+    cost: 10,
+  });
+
+  // Update user password
+  await db.update(users)
+    .set({ passwordHash })
+    .where(eq(users.id, resetToken.userId));
+
+  // Mark token as used
+  await db.update(passwordResetTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(passwordResetTokens.id, resetToken.id));
+
+  // Invalidate all existing sessions for security
+  await lucia.invalidateUserSessions(resetToken.userId);
+
+  return c.json({ success: true });
 });

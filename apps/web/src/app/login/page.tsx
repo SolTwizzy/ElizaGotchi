@@ -21,10 +21,22 @@ export default function LoginPage() {
   // Email form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate password confirmation for signup
+    if (isSignup && password !== confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'Passwords do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -127,16 +139,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/50 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#1a1033] via-[#0d1a2d] to-[#1a0d2e] p-4">
       <Link href="/" className="mb-8 flex items-center gap-2">
-        <Bot className="h-8 w-8" />
-        <span className="text-2xl font-bold font-diediedi">ElizaGotchi OS</span>
+        <Bot className="h-8 w-8 text-purple-400" />
+        <span className="text-2xl font-bold font-diediedi bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">ElizaGotchi OS</span>
       </Link>
 
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20">
         <CardHeader className="text-center">
-          <CardTitle>{isSignup ? 'Create account' : 'Welcome back'}</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">{isSignup ? 'Create account' : 'Welcome back'}</CardTitle>
+          <CardDescription className="text-white/60">
             {isSignup
               ? 'Sign up to start deploying AI agents'
               : 'Sign in to manage your AI agents'}
@@ -144,12 +156,12 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="email" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="email" className="gap-2">
+            <TabsList className="grid w-full grid-cols-2 bg-white/5 border border-white/10">
+              <TabsTrigger value="email" className="gap-2 text-white/70 data-[state=active]:bg-white/10 data-[state=active]:text-white">
                 <Mail className="h-4 w-4" />
                 Email
               </TabsTrigger>
-              <TabsTrigger value="wallet" className="gap-2">
+              <TabsTrigger value="wallet" className="gap-2 text-white/70 data-[state=active]:bg-white/10 data-[state=active]:text-white">
                 <Wallet className="h-4 w-4" />
                 Wallet
               </TabsTrigger>
@@ -159,7 +171,7 @@ export default function LoginPage() {
               <form onSubmit={handleEmailAuth} className="space-y-4">
                 {isSignup && (
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name (optional)</Label>
+                    <Label htmlFor="name" className="text-white/80">Name (optional)</Label>
                     <Input
                       id="name"
                       type="text"
@@ -167,11 +179,12 @@ export default function LoginPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       disabled={loading}
+                      className="bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-purple-500"
                     />
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-white/80">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -180,10 +193,11 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={loading}
+                    className="bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-purple-500"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-white/80">Password</Label>
                   <Input
                     id="password"
                     type="password"
@@ -193,20 +207,44 @@ export default function LoginPage() {
                     required
                     minLength={isSignup ? 8 : undefined}
                     disabled={loading}
+                    className="bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-purple-500"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                {isSignup && (
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-white/80">Confirm Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      disabled={loading}
+                      className="bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-purple-500"
+                    />
+                  </div>
+                )}
+                {!isSignup && (
+                  <div className="text-right">
+                    <Link href="/forgot-password" className="text-sm text-purple-400 hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
+                )}
+                <Button type="submit" className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 border-0 text-white" disabled={loading}>
                   {loading ? 'Please wait...' : isSignup ? 'Create account' : 'Sign in'}
                 </Button>
               </form>
 
-              <div className="text-center text-sm">
+              <div className="text-center text-sm text-white/60">
                 {isSignup ? (
                   <>
                     Already have an account?{' '}
                     <button
                       type="button"
-                      className="text-primary underline hover:no-underline"
+                      className="text-purple-400 underline hover:no-underline"
                       onClick={() => setIsSignup(false)}
                     >
                       Sign in
@@ -217,7 +255,7 @@ export default function LoginPage() {
                     Don't have an account?{' '}
                     <button
                       type="button"
-                      className="text-primary underline hover:no-underline"
+                      className="text-purple-400 underline hover:no-underline"
                       onClick={() => setIsSignup(true)}
                     >
                       Sign up
@@ -228,13 +266,13 @@ export default function LoginPage() {
             </TabsContent>
 
             <TabsContent value="wallet" className="space-y-4 pt-4">
-              <div className="text-center text-sm text-muted-foreground mb-4">
+              <div className="text-center text-sm text-white/60 mb-4">
                 Connect your Solana wallet to sign in or create an account automatically.
               </div>
               <Button
                 onClick={handlePhantomConnect}
                 disabled={loading}
-                className="w-full gap-2 bg-purple-600 hover:bg-purple-700"
+                className="w-full gap-2 bg-purple-600 hover:bg-purple-700 border-0 text-white"
               >
                 <svg className="h-5 w-5" viewBox="0 0 128 128" fill="currentColor">
                   <circle cx="64" cy="64" r="64" fill="currentColor" fillOpacity="0.1"/>
@@ -250,13 +288,13 @@ export default function LoginPage() {
                 </svg>
                 {loading ? 'Connecting...' : 'Connect Phantom'}
               </Button>
-              <p className="text-center text-xs text-muted-foreground">
+              <p className="text-center text-xs text-white/50">
                 Don't have Phantom?{' '}
                 <a
                   href="https://phantom.app/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary underline hover:no-underline"
+                  className="text-purple-400 underline hover:no-underline"
                 >
                   Download here
                 </a>
@@ -264,13 +302,13 @@ export default function LoginPage() {
             </TabsContent>
           </Tabs>
 
-          <p className="text-center text-xs text-muted-foreground pt-6">
+          <p className="text-center text-xs text-white/50 pt-6">
             By signing in, you agree to our{' '}
-            <Link href="/terms" className="underline hover:text-foreground">
+            <Link href="/terms" className="underline hover:text-white/80">
               Terms of Service
             </Link>{' '}
             and{' '}
-            <Link href="/privacy" className="underline hover:text-foreground">
+            <Link href="/privacy" className="underline hover:text-white/80">
               Privacy Policy
             </Link>
           </p>

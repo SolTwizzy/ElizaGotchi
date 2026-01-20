@@ -5,7 +5,8 @@ import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
 import { db, users, subscriptions, agents } from '@elizagotchi/database';
 import { generateTelegramLinkCode } from '../services/telegram-bot';
-import { PLANS } from '@elizagotchi/shared';
+
+const MAX_AGENTS = 20;
 import { requireAuth } from '../middleware/auth';
 import { lucia } from '../lib/auth';
 import type { AuthenticatedContext } from '../types';
@@ -49,13 +50,6 @@ userRoutes.get('/me', async (c) => {
     throw new HTTPException(404, { message: 'User not found' });
   }
 
-  // Get user's subscription
-  const subscription = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, user.id),
-  });
-
-  const plan = subscription?.plan || 'free';
-
   // Get agent count
   const agentCount = await db
     .select()
@@ -63,14 +57,12 @@ userRoutes.get('/me', async (c) => {
     .where(eq(agents.userId, user.id))
     .then((rows) => rows.length);
 
-  const planDetails = PLANS[plan as keyof typeof PLANS] || PLANS.free;
-
   return c.json({
-    user: { ...fullUser, plan },
-    subscription: subscription || null,
+    user: { ...fullUser, plan: 'free' },
+    subscription: null,
     usage: {
       agents: agentCount,
-      agentsLimit: planDetails?.maxAgents || 1,
+      agentsLimit: MAX_AGENTS,
     },
   });
 });
@@ -94,12 +86,7 @@ userRoutes.patch('/me', zValidator('json', updateProfileSchema), async (c) => {
       avatarUrl: users.avatarUrl,
     });
 
-  // Get plan from subscription
-  const subscription = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, user.id),
-  });
-
-  return c.json({ user: { ...updatedUser, plan: subscription?.plan || 'free' } });
+  return c.json({ user: { ...updatedUser, plan: 'free' } });
 });
 
 // Delete user account
@@ -120,41 +107,33 @@ userRoutes.delete('/me', async (c) => {
   return c.json({ success: true });
 });
 
-// Get user's subscription details
+// Get user's subscription details (simplified - no paid plans for now)
 userRoutes.get('/subscription', async (c) => {
-  const user = c.get('user');
-
-  const subscription = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, user.id),
-  });
-
-  const plan = subscription?.plan || 'free';
-  const planDetails = PLANS[plan as keyof typeof PLANS] || PLANS.free;
-
   return c.json({
-    subscription: subscription || null,
+    subscription: null,
     plan: {
-      id: plan,
-      ...planDetails,
+      id: 'free',
+      name: 'Free',
+      maxAgents: MAX_AGENTS,
     },
   });
 });
 
-// Get available plans
+// Get available plans (simplified - no paid plans for now)
 userRoutes.get('/plans', async (c) => {
-  return c.json({ plans: PLANS });
+  return c.json({
+    plans: {
+      free: {
+        name: 'Free',
+        maxAgents: MAX_AGENTS,
+      },
+    },
+  });
 });
 
 // Get user's API usage stats
 userRoutes.get('/usage', async (c) => {
   const user = c.get('user');
-
-  // Get subscription to find plan
-  const subscription = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, user.id),
-  });
-
-  const plan = subscription?.plan || 'free';
 
   // Get agent count
   const userAgents = await db.query.agents.findMany({
@@ -165,15 +144,13 @@ userRoutes.get('/usage', async (c) => {
     },
   });
 
-  const planDetails = PLANS[plan as keyof typeof PLANS] || PLANS.free;
-
   return c.json({
     agents: {
       total: userAgents.length,
       running: userAgents.filter((a) => a.status === 'running').length,
-      limit: planDetails?.maxAgents || 1,
+      limit: MAX_AGENTS,
     },
-    plan: plan,
+    plan: 'free',
   });
 });
 

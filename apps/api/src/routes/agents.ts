@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, desc } from 'drizzle-orm';
 import { db, agents } from '@elizagotchi/database';
-import { AGENT_TYPES, PLANS } from '@elizagotchi/shared';
+import { AGENT_TYPES } from '@elizagotchi/shared';
 import { requireAuth } from '../middleware/auth';
 import { agentOrchestrator } from '../services/agent-orchestrator';
 import type { AuthenticatedContext } from '../types';
@@ -64,18 +64,17 @@ agentRoutes.post('/', zValidator('json', createAgentSchema), async (c) => {
   const user = c.get('user');
   const body = c.req.valid('json');
 
-  // Check agent limit based on plan
-  const userPlan = (user as { plan?: string }).plan || 'free';
-  const plan = PLANS[userPlan as keyof typeof PLANS] || PLANS.free;
+  // Check agent limit (flat 20 agents per user)
+  const MAX_AGENTS = 20;
   const currentAgentCount = await db
     .select()
     .from(agents)
     .where(eq(agents.userId, user.id))
     .then((rows) => rows.length);
 
-  if (currentAgentCount >= plan.maxAgents) {
+  if (currentAgentCount >= MAX_AGENTS) {
     throw new HTTPException(403, {
-      message: `Agent limit reached. Your ${userPlan} plan allows ${plan.maxAgents} agents.`,
+      message: `Agent limit reached (${MAX_AGENTS} max).`,
     });
   }
 
@@ -93,7 +92,19 @@ agentRoutes.post('/', zValidator('json', createAgentSchema), async (c) => {
     })
     .returning();
 
-  return c.json({ agent }, 201);
+  // Auto-start the agent immediately after creation
+  try {
+    await agentOrchestrator.startAgent(agentId, user.id);
+    // Fetch updated agent with running status
+    const updatedAgent = await db.query.agents.findFirst({
+      where: eq(agents.id, agentId),
+    });
+    return c.json({ agent: updatedAgent || agent }, 201);
+  } catch (error) {
+    // If auto-start fails, still return the created agent (in pending state)
+    console.error('Failed to auto-start agent:', error);
+    return c.json({ agent }, 201);
+  }
 });
 
 // Update agent

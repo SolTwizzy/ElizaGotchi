@@ -24,6 +24,7 @@
     "hono": "^4.6.14",
     "ioredis": "^5.4.2",
     "lucia": "^3.2.2",
+    "postgres": "^3.4.3",
     "resend": "^6.8.0",
     "stripe": "^14.21.0",
     "tweetnacl": "^1.0.3",

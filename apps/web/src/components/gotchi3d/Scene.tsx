@@ -1,14 +1,16 @@
 'use client';
 
-import { Suspense, useMemo, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useMemo, useRef } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
+import * as THREE from 'three';
 import { TamagotchiDevice, calculateDevicePositions } from './TamagotchiDevice';
 import type { Agent } from '@/lib/api';
 
 interface SceneProps {
   agents: Agent[];
   selectedAgentId: string | null;
+  viewMode: 'galaxy' | 'planet';
   onSelectAgent: (agent: Agent) => void;
   onDeselectAgent: () => void;
   onFeed: (agent: Agent) => void;
@@ -16,16 +18,67 @@ interface SceneProps {
   onSettings: (agent: Agent) => void;
 }
 
+// Camera controller for smooth transitions
+function CameraController({
+  viewMode,
+  targetPosition,
+}: {
+  viewMode: 'galaxy' | 'planet';
+  targetPosition: [number, number, number] | null;
+}) {
+  const { camera } = useThree();
+  const targetRef = useRef(new THREE.Vector3(0, 0, 0));
+  const positionRef = useRef(new THREE.Vector3(0, 8, 10));
+
+  useFrame(() => {
+    // Set target based on view mode
+    if (viewMode === 'galaxy') {
+      // Galaxy view: top-down angled view
+      positionRef.current.set(0, 8, 10);
+      targetRef.current.set(0, 0, 0);
+    } else if (targetPosition) {
+      // Planet view: zoom close to selected device
+      positionRef.current.set(
+        targetPosition[0],
+        targetPosition[1] + 1.5,
+        targetPosition[2] + 3
+      );
+      targetRef.current.set(
+        targetPosition[0],
+        targetPosition[1],
+        targetPosition[2]
+      );
+    }
+
+    // Smooth camera movement
+    camera.position.lerp(positionRef.current, 0.05);
+
+    // Update camera look target
+    const currentTarget = new THREE.Vector3();
+    camera.getWorldDirection(currentTarget);
+    const lookTarget = targetRef.current.clone().sub(camera.position).normalize();
+    currentTarget.lerp(lookTarget, 0.05);
+    camera.lookAt(
+      camera.position.x + currentTarget.x,
+      camera.position.y + currentTarget.y,
+      camera.position.z + currentTarget.z
+    );
+  });
+
+  return null;
+}
+
 export default function Scene({
   agents,
   selectedAgentId,
+  viewMode,
   onSelectAgent,
   onDeselectAgent,
   onFeed,
   onChat,
   onSettings,
 }: SceneProps) {
-  // Calculate positions for all devices
+  // Calculate positions for all devices (circular layout)
   const positions = useMemo(
     () => calculateDevicePositions(agents.length),
     [agents.length]
@@ -41,10 +94,13 @@ export default function Scene({
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 6], fov: 50 }}
+      camera={{ position: [0, 8, 10], fov: 50 }}
       style={{ background: 'linear-gradient(to bottom, #0a0a0f, #1a0a1f)' }}
     >
       <Suspense fallback={null}>
+        {/* Camera animation controller */}
+        <CameraController viewMode={viewMode} targetPosition={selectedPosition} />
+
         {/* Lighting */}
         <ambientLight intensity={0.4} color="#c084fc" />
         <pointLight position={[10, 10, 10]} intensity={0.8} color="#a78bfa" />
@@ -61,13 +117,13 @@ export default function Scene({
           speed={0.3}
         />
 
-        {/* Controls */}
+        {/* Controls - zoom only in galaxy view, disabled in planet view */}
         <OrbitControls
           enablePan={false}
-          enableZoom={true}
-          minDistance={3}
-          maxDistance={12}
-          target={selectedPosition ? [selectedPosition[0], selectedPosition[1], 0] : [0, 0, 0]}
+          enableZoom={viewMode === 'galaxy'}
+          enableRotate={false}
+          minDistance={5}
+          maxDistance={20}
         />
 
         {/* Render Tamagotchi devices for each agent */}
@@ -77,6 +133,7 @@ export default function Scene({
             agent={agent}
             position={positions[index]}
             isSelected={selectedAgentId === agent.id}
+            showLabel={viewMode === 'galaxy'}
             onClick={() => onSelectAgent(agent)}
             onFeed={() => onFeed(agent)}
             onChat={() => onChat(agent)}

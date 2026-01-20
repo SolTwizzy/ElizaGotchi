@@ -9,14 +9,20 @@ import { userRoutes } from './routes/users';
 import { webhookRoutes } from './routes/webhooks';
 import { authRoutes } from './routes/auth';
 import { internalRoutes } from './routes/internal';
+import { debugRoutes } from './routes/debug';
 import { telegramBotRouter } from './services/telegram-bot';
 import { botService } from './services/bot-service';
+import { bootstrapDatabase } from './services/db-bootstrap';
 import type { AppContext } from './types';
 
-// Initialize bot service on startup
-botService.initialize().catch((err) => {
-  console.error('[API] Failed to initialize bot service:', err);
-});
+// Initialize services in background (don't block server startup)
+Promise.resolve()
+  .then(() => bootstrapDatabase())
+  .then(() => botService.initialize())
+  .catch((err) => {
+    // Log but don't crash - these are optional services
+    console.error('[API] Background service error:', err);
+  });
 
 const app = new Hono<AppContext>();
 
@@ -55,6 +61,7 @@ app.route('/api/users', userRoutes);
 app.route('/api/webhooks', webhookRoutes);
 app.route('/api/internal', internalRoutes);
 app.route('/api/telegram', telegramBotRouter);
+app.route('/api/debug', debugRoutes);
 
 // Error handler
 app.onError((err, c) => {

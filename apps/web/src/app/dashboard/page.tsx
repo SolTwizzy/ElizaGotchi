@@ -8,7 +8,7 @@ import { useAgents } from '@/hooks/use-agents';
 import { useUsage } from '@/hooks/use-user';
 import { useConnections } from '@/hooks/use-connections';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Bot, Link2, Activity, TrendingUp, AlertCircle, CheckCircle, Pause, Play } from 'lucide-react';
+import { Bot, Link2, Activity, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 function StatusBadge({ status }: { status: string }) {
@@ -48,7 +48,7 @@ export default function DashboardPage() {
 
       <div className="p-6 space-y-6">
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
@@ -63,7 +63,7 @@ export default function DashboardPage() {
                     {usageData?.agents.total ?? 0}
                   </div>
                   <p className="text-xs text-white/60">
-                    of {usageData?.agents.limit ?? 0} available
+                    of 20 available
                   </p>
                 </>
               )}
@@ -103,29 +103,6 @@ export default function DashboardPage() {
                   <p className="text-xs text-white/60">
                     OAuth & wallets linked
                   </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Plan</CardTitle>
-              <TrendingUp className="h-4 w-4 text-white/60" />
-            </CardHeader>
-            <CardContent>
-              {usageLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold capitalize">
-                    {usageData?.plan ?? 'Free'}
-                  </div>
-                  <Link href="/dashboard/billing">
-                    <span className="text-xs text-purple-400 hover:underline">
-                      Upgrade plan
-                    </span>
-                  </Link>
                 </>
               )}
             </CardContent>

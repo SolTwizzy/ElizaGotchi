@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Link2,
   Settings,
-  CreditCard,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -28,7 +27,6 @@ const navItems = [
   { href: '/dashboard/agents', icon: Bot, label: 'Agents' },
   { href: '/dashboard/connections', icon: Link2, label: 'Connections' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
-  { href: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
 ];
 
 interface SidebarProps {
@@ -120,9 +118,6 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             <div className={cn('flex-1 overflow-hidden', collapsed && 'md:hidden')}>
               <p className="truncate text-sm font-medium text-white">
                 {user.name ?? user.email}
-              </p>
-              <p className="truncate text-xs text-white/50">
-                {user.plan} plan
               </p>
             </div>
             <Button

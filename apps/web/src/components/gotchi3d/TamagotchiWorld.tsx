@@ -33,6 +33,7 @@ function TamagotchiWorldInner({
   loadingAgentId,
 }: TamagotchiWorldProps) {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [viewMode, setViewMode] = useState<'galaxy' | 'planet'>('galaxy');
   const [showChat, setShowChat] = useState(false);
   const [isHarvesting, setIsHarvesting] = useState(false);
   const [harvestQuery, setHarvestQuery] = useState('');
@@ -40,11 +41,13 @@ function TamagotchiWorldInner({
 
   const handleSelectAgent = useCallback((agent: Agent) => {
     setSelectedAgent(agent);
+    setViewMode('planet');
     playSound('click');
   }, [playSound]);
 
   const handleDeselectAgent = useCallback(() => {
     setSelectedAgent(null);
+    setViewMode('galaxy');
     setShowChat(false);
     playSound('click');
   }, [playSound]);
@@ -126,6 +129,7 @@ function TamagotchiWorldInner({
         <TamagotchiCanvas
           agents={agents}
           selectedAgentId={currentSelectedAgent?.id || null}
+          viewMode={viewMode}
           onSelectAgent={handleSelectAgent}
           onDeselectAgent={handleDeselectAgent}
           onFeed={handleFeed}

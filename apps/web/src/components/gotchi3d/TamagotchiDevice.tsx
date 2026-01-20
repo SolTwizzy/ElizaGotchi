@@ -16,6 +16,7 @@ interface TamagotchiDeviceProps {
   agent: Agent;
   position: [number, number, number];
   isSelected: boolean;
+  showLabel?: boolean;
   onClick: () => void;
   onFeed: () => void;
   onChat: () => void;
@@ -26,6 +27,7 @@ export function TamagotchiDevice({
   agent,
   position,
   isSelected,
+  showLabel = true,
   onClick,
   onFeed,
   onChat,
@@ -124,15 +126,17 @@ export function TamagotchiDevice({
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
     >
-      {/* Floating label above the device */}
-      <FloatingLabel
-        name={agent.name}
-        agentType={agent.type}
-        planetName={planetConfig.name}
-        position={[0, 1.3, 0]}
-        isSelected={isSelected}
-        status={agent.status}
-      />
+      {/* Floating label above the device (hidden in planet view) */}
+      {showLabel && (
+        <FloatingLabel
+          name={agent.name}
+          agentType={agent.type}
+          planetName={planetConfig.name}
+          position={[0, 1.3, 0]}
+          isSelected={isSelected}
+          status={agent.status}
+        />
+      )}
 
       {/* Planet orbiting behind the device */}
       <Planet
@@ -169,36 +173,45 @@ export function TamagotchiDevice({
   );
 }
 
-// Helper to calculate device positions in a grid/circle layout
+// Helper to calculate device positions in a circular orbit layout
 export function calculateDevicePositions(count: number): [number, number, number][] {
   const positions: [number, number, number][] = [];
 
-  if (count === 1) {
-    positions.push([0, 0, 0]);
-  } else if (count === 2) {
-    positions.push([-1.2, 0, 0]);
-    positions.push([1.2, 0, 0]);
-  } else if (count === 3) {
-    positions.push([-1.5, 0.5, 0]);
-    positions.push([1.5, 0.5, 0]);
-    positions.push([0, -0.8, 0]);
-  } else if (count === 4) {
-    positions.push([-1.5, 0.8, 0]);
-    positions.push([1.5, 0.8, 0]);
-    positions.push([-1.5, -0.8, 0]);
-    positions.push([1.5, -0.8, 0]);
-  } else {
-    // Arrange in rows for more devices
-    const cols = Math.ceil(Math.sqrt(count));
-    const rows = Math.ceil(count / cols);
-    const spacing = 2;
+  if (count === 0) return positions;
 
+  if (count === 1) {
+    // Single agent at center
+    positions.push([0, 0, 0]);
+  } else if (count <= 6) {
+    // Small number: single ring
+    const radius = 2.5;
     for (let i = 0; i < count; i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const x = (col - (cols - 1) / 2) * spacing;
-      const y = ((rows - 1) / 2 - row) * spacing * 0.8;
-      positions.push([x, y, 0]);
+      const angle = (i / count) * Math.PI * 2 - Math.PI / 2; // Start from top
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      positions.push([x, 0, z]);
+    }
+  } else {
+    // Larger numbers: two rings
+    const innerCount = Math.ceil(count / 2);
+    const outerCount = count - innerCount;
+    const innerRadius = 2;
+    const outerRadius = 4;
+
+    // Inner ring
+    for (let i = 0; i < innerCount; i++) {
+      const angle = (i / innerCount) * Math.PI * 2 - Math.PI / 2;
+      const x = Math.cos(angle) * innerRadius;
+      const z = Math.sin(angle) * innerRadius;
+      positions.push([x, 0, z]);
+    }
+
+    // Outer ring (offset by half step for better spacing)
+    for (let i = 0; i < outerCount; i++) {
+      const angle = (i / outerCount) * Math.PI * 2 - Math.PI / 2 + Math.PI / outerCount;
+      const x = Math.cos(angle) * outerRadius;
+      const z = Math.sin(angle) * outerRadius;
+      positions.push([x, 0, z]);
     }
   }
 

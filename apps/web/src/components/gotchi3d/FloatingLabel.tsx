@@ -48,7 +48,7 @@ export function FloatingLabel({
       {/* Use HTML for crisp text rendering */}
       <Html
         center
-        distanceFactor={8}
+        distanceFactor={15}
         style={{
           pointerEvents: 'none',
           userSelect: 'none',
@@ -57,51 +57,36 @@ export function FloatingLabel({
       >
         <div
           className={`
-            flex flex-col items-center gap-1 px-3 py-2 rounded-lg
+            flex flex-col items-center gap-0.5 px-2 py-1 rounded-md
             transition-all duration-300 transform
-            ${isSelected ? 'scale-110' : 'scale-100'}
+            ${isSelected ? 'scale-105' : 'scale-100'}
           `}
           style={{
             background: isSelected
               ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.9), rgba(236, 72, 153, 0.9))'
-              : 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(8px)',
+              : 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(4px)',
             border: `1px solid ${isSelected ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
             boxShadow: isSelected
-              ? '0 0 20px rgba(168, 85, 247, 0.5)'
-              : '0 4px 12px rgba(0, 0, 0, 0.3)',
+              ? '0 0 12px rgba(168, 85, 247, 0.4)'
+              : '0 2px 6px rgba(0, 0, 0, 0.3)',
+            fontSize: '10px',
           }}
         >
           {/* Agent name */}
-          <div className="text-white font-bold text-sm tracking-wide">
+          <div className="text-white font-semibold" style={{ fontSize: '11px' }}>
             {name}
           </div>
 
-          {/* Agent type */}
-          <div className="text-white/70 text-xs">
-            {formattedType}
-          </div>
-
-          {/* Planet name */}
-          <div
-            className="text-xs font-medium mt-0.5 px-2 py-0.5 rounded-full"
-            style={{
-              background: 'rgba(255,255,255,0.1)',
-              color: isSelected ? '#fff' : 'rgba(255,255,255,0.6)',
-            }}
-          >
-            🪐 {planetName}
-          </div>
-
-          {/* Status indicator */}
-          <div className="flex items-center gap-1.5 mt-1">
+          {/* Status indicator - compact inline */}
+          <div className="flex items-center gap-1">
             <div
-              className="w-2 h-2 rounded-full animate-pulse"
+              className="w-1.5 h-1.5 rounded-full"
               style={{ backgroundColor: statusColor }}
             />
             <span
-              className="text-xs capitalize"
-              style={{ color: statusColor }}
+              className="capitalize"
+              style={{ color: statusColor, fontSize: '9px' }}
             >
               {status}
             </span>

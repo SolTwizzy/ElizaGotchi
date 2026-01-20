@@ -20,6 +20,7 @@ const Scene = dynamic(() => import('./Scene'), {
 interface TamagotchiCanvasProps {
   agents: Agent[];
   selectedAgentId: string | null;
+  viewMode: 'galaxy' | 'planet';
   onSelectAgent: (agent: Agent) => void;
   onDeselectAgent: () => void;
   onFeed: (agent: Agent) => void;

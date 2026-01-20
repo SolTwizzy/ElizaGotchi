@@ -723,14 +723,6 @@ export default function NewAgentPage() {
                 }
               )}
 
-              {/* Estimated cost */}
-              <div className="rounded-lg bg-white/5 border border-white/10 p-4">
-                <p className="text-sm text-white">
-                  <span className="font-medium">Estimated cost:</span>{' '}
-                  <span className="text-white/70">{typeConfig.estimatedCost}</span>
-                </p>
-              </div>
-
               {/* Actions */}
               <div className="flex gap-4">
                 <Button
@@ -835,9 +827,6 @@ export default function NewAgentPage() {
                       <p className="text-sm text-white/60 line-clamp-2">
                         {type.description}
                       </p>
-                      <p className="mt-2 text-xs text-white/40">
-                        {type.estimatedCost}
-                      </p>
                     </CardContent>
                   </Card>
                 );
@@ -879,9 +868,6 @@ export default function NewAgentPage() {
                         <CardContent>
                           <p className="text-sm text-white/60 line-clamp-2">
                             {type.description}
-                          </p>
-                          <p className="mt-2 text-xs text-white/40">
-                            {type.estimatedCost}
                           </p>
                         </CardContent>
                       </Card>

@@ -1,0 +1,43 @@
+{
+  "name": "elizagotchi",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "packages/plugins/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:agents": "vitest run tests/integration/agents",
+    "test:notifications": "vitest run tests/integration/notifications",
+    "test:blockchain": "vitest run tests/integration/blockchain",
+    "test:github": "vitest run tests/integration/plugins/github.test.ts",
+    "test:api": "vitest run tests/integration/api",
+    "test:coverage": "vitest run --coverage",
+    "db:migrate": "bun run --filter @elizagotchi/database migrate",
+    "db:push": "bun run --filter @elizagotchi/database push",
+    "db:seed": "bun run scripts/seed-db.ts",
+    "db:studio": "bun run --filter @elizagotchi/database studio",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "dotenv": "^17.2.3",
+    "prettier": "^3.2.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "bun@1.0.25"
+}

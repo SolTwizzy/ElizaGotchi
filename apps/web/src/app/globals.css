@@ -1,0 +1,313 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'DIEDIEDI';
+  src: url('/DIEDIEDI.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'TamaConnect';
+  src: url('/tamaconnecttype.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+.font-diediedi {
+  font-family: 'DIEDIEDI', system-ui, sans-serif !important;
+}
+
+.font-tamaconnect {
+  font-family: 'TamaConnect', system-ui, sans-serif !important;
+  letter-spacing: 0.05em;
+  word-spacing: 0.1em;
+  line-height: 1.6;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 262 83% 58%;
+    --radius: 0.5rem;
+
+    /* Windows 2000 colors - for homepage only */
+    --win-bg: #3a6ea5;
+    --win-gray: #c0c0c0;
+    --win-dark: #808080;
+    --win-light: #ffffff;
+    --win-title: linear-gradient(180deg, #0a246a 0%, #a6caf0 100%);
+    --win-button: #c0c0c0;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply text-foreground;
+  }
+}
+
+@layer components {
+  /* Classic Windows button */
+  .win-button {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 4px 16px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Tahoma', sans-serif;
+  }
+
+  .win-button:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  .win-button:focus {
+    outline: 1px dotted #000;
+    outline-offset: -4px;
+  }
+
+  /* Windows title bar */
+  .win-titlebar {
+    background: linear-gradient(180deg, #0a246a 0%, #a6caf0 8%, #0a246a 100%);
+    color: white;
+    font-weight: bold;
+    padding: 3px 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+  }
+
+  .win-titlebar-inactive {
+    background: linear-gradient(180deg, #808080 0%, #c0c0c0 8%, #808080 100%);
+  }
+
+  /* Window frame */
+  .win-window {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  }
+
+  /* Window content area */
+  .win-content {
+    background: #c0c0c0;
+    padding: 8px;
+  }
+
+  /* Inset field/well */
+  .win-inset {
+    background: #ffffff;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  /* Menu bar */
+  .win-menubar {
+    background: #c0c0c0;
+    border-bottom: 1px solid #808080;
+    padding: 2px 0;
+  }
+
+  .win-menu-item {
+    padding: 2px 8px;
+    cursor: pointer;
+  }
+
+  .win-menu-item:hover {
+    background: #0a246a;
+    color: white;
+  }
+
+  /* Status bar */
+  .win-statusbar {
+    background: #c0c0c0;
+    border-top: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    padding: 2px 4px;
+    font-size: 11px;
+  }
+
+  /* Desktop icon */
+  .win-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+    cursor: pointer;
+    width: 75px;
+    text-align: center;
+  }
+
+  .win-icon:hover {
+    background: rgba(0, 0, 128, 0.3);
+  }
+
+  .win-icon-selected {
+    background: #0a246a !important;
+    color: white !important;
+  }
+
+  .win-icon-selected span {
+    color: white !important;
+    text-shadow: none !important;
+  }
+
+  .win-icon img {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 4px;
+  }
+
+  .win-icon span {
+    font-size: 11px;
+    color: white;
+    text-shadow: 1px 1px 1px #000;
+    word-wrap: break-word;
+  }
+
+  /* Icons inside white inset areas */
+  .win-inset .win-icon span {
+    color: #000;
+    text-shadow: none;
+  }
+
+  .win-inset .win-icon:hover {
+    background: rgba(0, 0, 128, 0.2);
+  }
+
+  /* Taskbar */
+  .win-taskbar {
+    background: #c0c0c0;
+    border-top: 2px solid #ffffff;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 2px 2px;
+  }
+
+  .win-start-button {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 2px 6px;
+    font-weight: bold;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  .win-start-button:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  /* Scrollbar */
+  .win-scrollbar::-webkit-scrollbar {
+    width: 16px;
+  }
+
+  .win-scrollbar::-webkit-scrollbar-track {
+    background: #c0c0c0;
+    border: 1px solid #808080;
+  }
+
+  .win-scrollbar::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+  }
+
+  /* Group box */
+  .win-groupbox {
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    padding: 12px 8px 8px;
+    margin-top: 8px;
+    position: relative;
+  }
+
+  .win-groupbox-label {
+    position: absolute;
+    top: -8px;
+    left: 8px;
+    background: #c0c0c0;
+    padding: 0 4px;
+    font-size: 11px;
+  }
+
+  /* Title bar buttons */
+  .win-titlebar-btn {
+    width: 16px;
+    height: 14px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    font-size: 9px;
+    line-height: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-family: 'Marlett', sans-serif;
+  }
+
+  .win-titlebar-btn:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+  }
+
+  /* Tab control */
+  .win-tab {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #c0c0c0 #ffffff;
+    border-bottom: none;
+    padding: 4px 12px;
+    margin-right: -2px;
+    cursor: pointer;
+  }
+
+  .win-tab-active {
+    background: #c0c0c0;
+    border-bottom: 2px solid #c0c0c0;
+    position: relative;
+    z-index: 1;
+  }
+}

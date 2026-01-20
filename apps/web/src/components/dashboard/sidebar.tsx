@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  Egg,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -23,6 +24,7 @@ import { useState } from 'react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/dashboard/gotchi', icon: Egg, label: 'My Gotchis' },
   { href: '/dashboard/agents', icon: Bot, label: 'Agents' },
   { href: '/dashboard/connections', icon: Link2, label: 'Connections' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },

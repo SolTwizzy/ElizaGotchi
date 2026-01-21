@@ -141,13 +141,18 @@ function TamagotchiWorldInner({
     ? agents.find((a) => a.id === selectedAgent.id) || null
     : null;
 
-  // Get the latest assistant message for speech bubble
+  // Get the latest assistant message for speech bubble (with welcome message fallback)
   const latestAssistantMessage = useMemo(() => {
     const assistantMessages = chatMessages.filter((m) => m.role === 'assistant');
-    return assistantMessages.length > 0
-      ? assistantMessages[assistantMessages.length - 1].content
-      : undefined;
-  }, [chatMessages]);
+    if (assistantMessages.length > 0) {
+      return assistantMessages[assistantMessages.length - 1].content;
+    }
+    // Show welcome message when no chat history
+    if (currentSelectedAgent) {
+      return `Hey there! I'm ${currentSelectedAgent.name}. How can I help you today?`;
+    }
+    return undefined;
+  }, [chatMessages, currentSelectedAgent]);
 
   return (
     <div className="absolute inset-0">

@@ -26,6 +26,11 @@ const updateAgentSchema = z.object({
   config: z.record(z.unknown()).optional(),
 });
 
+const chatMessageSchema = z.object({
+  content: z.string().min(1).max(4000),
+  roomId: z.string().optional(),
+});
+
 // List user's agents
 agentRoutes.get('/', async (c) => {
   const user = c.get('user');
@@ -269,4 +274,80 @@ agentRoutes.get('/:id/status', async (c) => {
   }
 
   return c.json({ status: agent.status });
+});
+
+// Send chat message to agent
+agentRoutes.post('/:id/chat', zValidator('json', chatMessageSchema), async (c) => {
+  const user = c.get('user');
+  const agentId = c.req.param('id');
+  const { content, roomId } = c.req.valid('json');
+
+  // Verify ownership
+  const agent = await db.query.agents.findFirst({
+    where: and(eq(agents.id, agentId), eq(agents.userId, user.id)),
+  });
+
+  if (!agent) {
+    throw new HTTPException(404, { message: 'Agent not found' });
+  }
+
+  // Check agent is running (allow 'starting' too as we may auto-recover)
+  if (agent.status !== 'running' && agent.status !== 'starting') {
+    throw new HTTPException(400, { message: 'Agent is not running. Start the agent to chat.' });
+  }
+
+  // Get runtime, auto-recovering if necessary (handles server restart case)
+  const runtime = await agentOrchestrator.ensureAgentRuntime(agentId, user.id);
+  if (!runtime) {
+    throw new HTTPException(500, { message: 'Agent runtime not available. The agent may have encountered an error. Try restarting the agent.' });
+  }
+
+  try {
+    // Process message through the runtime
+    const response = await runtime.processMessage(content, {
+      userId: user.id,
+      roomId: roomId || `chat-${user.id}`,
+      platform: 'web',
+    });
+
+    return c.json({
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: response.content,
+      timestamp: response.timestamp.toISOString(),
+      metadata: {
+        agentId,
+        ...response.metadata,
+      },
+    });
+  } catch (error) {
+    console.error(`Chat error for agent ${agentId}:`, error);
+    throw new HTTPException(500, {
+      message: error instanceof Error ? error.message : 'Failed to process message',
+    });
+  }
+});
+
+// Get chat history
+agentRoutes.get('/:id/chat/history', async (c) => {
+  const user = c.get('user');
+  const agentId = c.req.param('id');
+  const roomId = c.req.query('roomId') || `chat-${user.id}`;
+  const limit = parseInt(c.req.query('limit') || '50', 10);
+
+  // Verify ownership
+  const agent = await db.query.agents.findFirst({
+    where: and(eq(agents.id, agentId), eq(agents.userId, user.id)),
+  });
+
+  if (!agent) {
+    throw new HTTPException(404, { message: 'Agent not found' });
+  }
+
+  // For now, return empty history - ElizaOS memories table integration can be added later
+  // This allows the chat to work without requiring ElizaOS memory persistence to be fully configured
+  return c.json({
+    messages: [],
+    hasMore: false,
+  });
 });

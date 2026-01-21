@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { TamagotchiCanvas } from './TamagotchiCanvas';
 import { SoundProvider, useSound } from './SoundManager';
 import { AgentChatArea } from '../gotchi/agent-chat-area';
@@ -9,6 +9,7 @@ import { getPlanetForAgentType } from './planets';
 import { Button } from '@/components/ui/button';
 import { X, ArrowLeft, Play, Pause, Square, RotateCcw, Settings, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAgentChat } from '@/hooks/use-agent-chat';
 import type { Agent } from '@/lib/api';
 
 interface TamagotchiWorldProps {
@@ -38,6 +39,24 @@ function TamagotchiWorldInner({
   const [isHarvesting, setIsHarvesting] = useState(false);
   const [harvestQuery, setHarvestQuery] = useState('');
   const { playSound } = useSound();
+
+  // Chat hook - connected to the selected agent
+  const {
+    messages: chatMessages,
+    sendMessage: sendChatMessage,
+    clearMessages,
+    isLoading: isChatLoading,
+    error: chatError,
+  } = useAgentChat(selectedAgent?.id ?? null);
+
+
+  // Clear messages when deselecting agent
+  useEffect(() => {
+    if (!selectedAgent) {
+      clearMessages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAgent?.id]);
 
   const handleSelectAgent = useCallback((agent: Agent) => {
     setSelectedAgent(agent);
@@ -302,7 +321,9 @@ function TamagotchiWorldInner({
               agentType={currentSelectedAgent.type}
               agentName={currentSelectedAgent.name}
               status={currentSelectedAgent.status}
-              onSendMessage={(msg) => handleSendMessage(currentSelectedAgent, msg)}
+              messages={chatMessages}
+              onSendMessage={sendChatMessage}
+              isLoading={isChatLoading}
             />
           </div>
         </div>

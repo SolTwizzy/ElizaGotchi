@@ -130,11 +130,11 @@ const agentConfigs = [
     },
   },
   {
-    name: 'Naruto Lore Keeper',
+    name: 'Anime Lore Keeper',
     type: 'lore-keeper',
     config: {
-      universe: 'Naruto',
-      knowledgeBase: 'https://naruto.fandom.com/wiki/Narutopedia',
+      universe: 'Anime & Manga',
+      knowledgeBase: 'https://myanimelist.net',
       spoilerWarnings: true,
     },
   },

@@ -13,12 +13,14 @@ import { debugRoutes } from './routes/debug';
 import { telegramBotRouter } from './services/telegram-bot';
 import { botService } from './services/bot-service';
 import { bootstrapDatabase } from './services/db-bootstrap';
+import { agentOrchestrator } from './services/agent-orchestrator';
 import type { AppContext } from './types';
 
 // Initialize services in background (don't block server startup)
 Promise.resolve()
   .then(() => bootstrapDatabase())
   .then(() => botService.initialize())
+  .then(() => agentOrchestrator.recoverRunningAgents())
   .catch((err) => {
     // Log but don't crash - these are optional services
     console.error('[API] Background service error:', err);

@@ -145,7 +145,7 @@ export function AgentChatArea({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              disabled={!canSend && !input}
+              disabled={isLoading}
               className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-white/30"
             />
             <Button

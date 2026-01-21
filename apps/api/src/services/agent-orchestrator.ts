@@ -23,9 +23,106 @@ interface RunningAgent {
 class AgentOrchestrator {
   private runningAgents: Map<string, RunningAgent> = new Map();
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+  private recoveryInProgress: Set<string> = new Set();
 
   constructor() {
     this.startHeartbeatMonitor();
+  }
+
+  /**
+   * Recover agents that were running before server restart.
+   * This should be called during server initialization.
+   */
+  async recoverRunningAgents(): Promise<void> {
+    console.log('[AgentOrchestrator] Checking for agents to recover...');
+
+    try {
+      // Find all agents with 'running' or 'starting' status that don't have active runtimes
+      const agentsToRecover = await db.query.agents.findMany({
+        where: (agents, { inArray }) => inArray(agents.status, ['running', 'starting']),
+      });
+
+      if (agentsToRecover.length === 0) {
+        console.log('[AgentOrchestrator] No agents to recover');
+        return;
+      }
+
+      console.log(`[AgentOrchestrator] Found ${agentsToRecover.length} agents to recover`);
+
+      for (const agent of agentsToRecover) {
+        if (this.runningAgents.has(agent.id)) {
+          // Already running in memory, skip
+          continue;
+        }
+
+        try {
+          console.log(`[AgentOrchestrator] Recovering agent ${agent.id} (${agent.name})`);
+          await this.startAgent(agent.id, agent.userId);
+        } catch (error) {
+          console.error(`[AgentOrchestrator] Failed to recover agent ${agent.id}:`, error);
+          // Mark as error so user knows to manually restart
+          await this.updateAgentStatus(agent.id, 'error');
+          await this.logAgentEvent(agent.id, 'error', `Failed to auto-recover after restart: ${error}`);
+        }
+      }
+
+      console.log('[AgentOrchestrator] Recovery complete');
+    } catch (error) {
+      console.error('[AgentOrchestrator] Error during recovery:', error);
+    }
+  }
+
+  /**
+   * Ensure an agent runtime is available, restarting if necessary.
+   * This handles cases where the database says 'running' but the runtime was lost (e.g., server restart).
+   */
+  async ensureAgentRuntime(agentId: string, userId: string): Promise<AgentRuntime | ElizaRuntime | null> {
+    // Check if already running
+    const existing = this.runningAgents.get(agentId);
+    if (existing) {
+      return existing.runtime;
+    }
+
+    // Prevent concurrent recovery attempts for the same agent
+    if (this.recoveryInProgress.has(agentId)) {
+      // Wait a bit and check again
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const recovered = this.runningAgents.get(agentId);
+      return recovered?.runtime ?? null;
+    }
+
+    // Verify agent exists and belongs to user
+    const agent = await db.query.agents.findFirst({
+      where: and(eq(agents.id, agentId), eq(agents.userId, userId)),
+    });
+
+    if (!agent) {
+      return null;
+    }
+
+    // If agent status is 'running' but runtime is missing, auto-restart
+    if (agent.status === 'running' || agent.status === 'starting') {
+      console.log(`[AgentOrchestrator] Runtime missing for running agent ${agentId}, auto-restarting...`);
+
+      this.recoveryInProgress.add(agentId);
+      try {
+        // Reset status to allow restart
+        await this.updateAgentStatus(agentId, 'stopped');
+        await this.startAgent(agentId, userId);
+
+        const recovered = this.runningAgents.get(agentId);
+        return recovered?.runtime ?? null;
+      } catch (error) {
+        console.error(`[AgentOrchestrator] Failed to auto-restart agent ${agentId}:`, error);
+        await this.updateAgentStatus(agentId, 'error');
+        await this.logAgentEvent(agentId, 'error', `Failed to auto-restart: ${error}`);
+        return null;
+      } finally {
+        this.recoveryInProgress.delete(agentId);
+      }
+    }
+
+    return null;
   }
 
   private startHeartbeatMonitor() {
@@ -337,6 +434,21 @@ class AgentOrchestrator {
 
   async getRunningAgentCount(): Promise<number> {
     return this.runningAgents.size;
+  }
+
+  /**
+   * Get a running agent's runtime for chat functionality
+   */
+  getRunningAgentRuntime(agentId: string): AgentRuntime | ElizaRuntime | null {
+    const runningAgent = this.runningAgents.get(agentId);
+    return runningAgent?.runtime ?? null;
+  }
+
+  /**
+   * Check if an agent is currently running in memory
+   */
+  isAgentRunning(agentId: string): boolean {
+    return this.runningAgents.has(agentId);
   }
 
   async shutdown(): Promise<void> {

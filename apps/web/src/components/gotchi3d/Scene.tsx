@@ -33,21 +33,13 @@ function CameraController({
   useFrame(() => {
     // Set target based on view mode
     if (viewMode === 'galaxy') {
-      // Galaxy view: top-down angled view
-      positionRef.current.set(0, 8, 10);
+      // Galaxy view: top-down angled view, pulled back to see all agents
+      positionRef.current.set(0, 12, 16);
       targetRef.current.set(0, 0, 0);
     } else if (targetPosition) {
-      // Planet view: zoom close to selected device
-      positionRef.current.set(
-        targetPosition[0],
-        targetPosition[1] + 1.5,
-        targetPosition[2] + 3
-      );
-      targetRef.current.set(
-        targetPosition[0],
-        targetPosition[1],
-        targetPosition[2]
-      );
+      // Planet view: camera positioned to view both planet and large device
+      positionRef.current.set(0, 1, 8);
+      targetRef.current.set(0, 0, 0);
     }
 
     // Smooth camera movement
@@ -94,7 +86,7 @@ export default function Scene({
 
   return (
     <Canvas
-      camera={{ position: [0, 8, 10], fov: 50 }}
+      camera={{ position: [0, 12, 16], fov: 50 }}
       style={{ background: 'linear-gradient(to bottom, #0a0a0f, #1a0a1f)' }}
     >
       <Suspense fallback={null}>
@@ -122,24 +114,32 @@ export default function Scene({
           enablePan={false}
           enableZoom={viewMode === 'galaxy'}
           enableRotate={false}
-          minDistance={5}
-          maxDistance={20}
+          minDistance={8}
+          maxDistance={35}
         />
 
         {/* Render Tamagotchi devices for each agent */}
-        {agents.map((agent, index) => (
-          <TamagotchiDevice
-            key={agent.id}
-            agent={agent}
-            position={positions[index]}
-            isSelected={selectedAgentId === agent.id}
-            showLabel={viewMode === 'galaxy'}
-            onClick={() => onSelectAgent(agent)}
-            onFeed={() => onFeed(agent)}
-            onChat={() => onChat(agent)}
-            onSettings={() => onSettings(agent)}
-          />
-        ))}
+        {agents.map((agent, index) => {
+          const isSelected = selectedAgentId === agent.id;
+          // In planet view, only show the selected agent
+          if (viewMode === 'planet' && !isSelected) return null;
+
+          return (
+            <TamagotchiDevice
+              key={agent.id}
+              agent={agent}
+              // In planet view, center the selected agent at origin
+              position={viewMode === 'planet' ? [0, 0, 0] : positions[index]}
+              isSelected={isSelected}
+              viewMode={viewMode}
+              showLabel={viewMode === 'galaxy'}
+              onClick={() => onSelectAgent(agent)}
+              onFeed={() => onFeed(agent)}
+              onChat={() => onChat(agent)}
+              onSettings={() => onSettings(agent)}
+            />
+          );
+        })}
 
         {/* Empty state - show a faint egg */}
         {agents.length === 0 && (

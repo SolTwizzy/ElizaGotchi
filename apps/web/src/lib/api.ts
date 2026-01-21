@@ -82,6 +82,14 @@ export const agentsApi = {
   logs: (id: string, limit?: number) =>
     api.get<{ logs: AgentLog[] }>(`/api/agents/${id}/logs`, limit ? { limit: String(limit) } : undefined),
   types: () => api.get<{ types: Record<string, AgentType> }>('/api/agents/types'),
+  // Chat
+  chat: (id: string, content: string, roomId?: string) =>
+    api.post<ChatMessage>(`/api/agents/${id}/chat`, { content, roomId }),
+  chatHistory: (id: string, roomId?: string, limit?: number) =>
+    api.get<{ messages: ChatMessage[]; hasMore: boolean }>(
+      `/api/agents/${id}/chat/history`,
+      { ...(roomId && { roomId }), ...(limit && { limit: String(limit) }) }
+    ),
 };
 
 // Connections
@@ -230,4 +238,12 @@ export interface CreateAgentData {
 export interface UpdateAgentData {
   name?: string;
   config?: Record<string, unknown>;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
 }

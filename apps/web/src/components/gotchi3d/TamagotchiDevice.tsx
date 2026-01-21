@@ -16,6 +16,7 @@ interface TamagotchiDeviceProps {
   agent: Agent;
   position: [number, number, number];
   isSelected: boolean;
+  viewMode: 'galaxy' | 'planet';
   showLabel?: boolean;
   onClick: () => void;
   onFeed: () => void;
@@ -27,12 +28,14 @@ export function TamagotchiDevice({
   agent,
   position,
   isSelected,
+  viewMode,
   showLabel = true,
   onClick,
   onFeed,
   onChat,
   onSettings,
 }: TamagotchiDeviceProps) {
+  const isPlanetView = viewMode === 'planet';
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const { playSound } = useSound();
@@ -138,37 +141,41 @@ export function TamagotchiDevice({
         />
       )}
 
-      {/* Planet orbiting behind the device */}
+      {/* Planet - large and to the left in planet view, small beside device in galaxy view */}
       <Planet
         config={planetConfig}
-        position={[isSelected ? 1.2 : 0.8, 0.3, -0.8]}
-        scale={isSelected ? 0.4 : 0.25}
+        position={isPlanetView ? [-3.5, 0, 0] : [1.2, 0, 0]}
+        scale={isPlanetView ? 2 : (isSelected ? 1.2 : 0.8)}
         isActive={isSelected}
       />
 
-      {/* Main shell */}
-      <DeviceShell
-        color={colors.shell}
-        glowColor={colors.glow}
-        hovered={hovered}
-        status={agent.status}
-      />
+      {/* Device group - much larger in planet view for visibility */}
+      <group position={isPlanetView ? [0, 0, 0] : [0, 0, 0]} scale={isPlanetView ? 4 : 1}>
+        {/* Main shell */}
+        <DeviceShell
+          color={colors.shell}
+          glowColor={colors.glow}
+          hovered={hovered}
+          status={agent.status}
+        />
 
-      {/* LCD Screen */}
-      <DeviceScreen
-        status={agent.status}
-        agentType={agent.type}
-        healthLevel={healthLevel}
-        activityLevel={activityLevel}
-      />
+        {/* LCD Screen */}
+        <DeviceScreen
+          status={agent.status}
+          agentType={agent.type}
+          healthLevel={healthLevel}
+          activityLevel={activityLevel}
+        />
 
-      {/* Control buttons */}
-      <DeviceButtons
-        onAClick={onFeed}
-        onBClick={onChat}
-        onCClick={onSettings}
-        disabled={!isSelected}
-      />
+        {/* Control buttons */}
+        <DeviceButtons
+          onAClick={onFeed}
+          onBClick={onChat}
+          onCClick={onSettings}
+          disabled={!isSelected}
+        />
+
+      </group>
     </group>
   );
 }
@@ -183,8 +190,8 @@ export function calculateDevicePositions(count: number): [number, number, number
     // Single agent at center
     positions.push([0, 0, 0]);
   } else if (count <= 6) {
-    // Small number: single ring
-    const radius = 2.5;
+    // Small number: single ring with wide spacing
+    const radius = 5;
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2 - Math.PI / 2; // Start from top
       const x = Math.cos(angle) * radius;
@@ -192,11 +199,11 @@ export function calculateDevicePositions(count: number): [number, number, number
       positions.push([x, 0, z]);
     }
   } else {
-    // Larger numbers: two rings
+    // Larger numbers: two rings with wide spacing
     const innerCount = Math.ceil(count / 2);
     const outerCount = count - innerCount;
-    const innerRadius = 2;
-    const outerRadius = 4;
+    const innerRadius = 4;
+    const outerRadius = 8;
 
     // Inner ring
     for (let i = 0; i < innerCount; i++) {

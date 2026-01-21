@@ -28,7 +28,7 @@ function Button({ position, label, onClick, disabled }: ButtonProps) {
   // Animate button press
   useFrame(() => {
     if (meshRef.current) {
-      const targetZ = pressed ? position[2] - 0.01 : position[2];
+      const targetZ = pressed ? -0.008 : 0;
       meshRef.current.position.z = THREE.MathUtils.lerp(
         meshRef.current.position.z,
         targetZ,
@@ -58,26 +58,31 @@ function Button({ position, label, onClick, disabled }: ButtonProps) {
 
   return (
     <group position={position}>
-      {/* Button body */}
+      {/* Button base/socket - recessed ring */}
+      <mesh position={[0, 0, 0.01]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.032, 0.035, 0.015, 16]} />
+        <meshStandardMaterial color="#7f1d1d" roughness={0.7} />
+      </mesh>
+
+      {/* Button body - larger rounded sphere like real Tamagotchi buttons */}
       <mesh
         ref={meshRef}
+        position={[0, 0, 0.025]}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerOver={() => !disabled && setHovered(true)}
         onPointerOut={handlePointerLeave}
       >
-        <cylinderGeometry args={[0.025, 0.028, 0.015, 16]} />
-        <meshStandardMaterial
-          color={disabled ? '#4b5563' : hovered ? '#e5e7eb' : '#d1d5db'}
-          roughness={0.5}
-          metalness={0.2}
+        <sphereGeometry args={[0.028, 16, 16]} />
+        <meshPhysicalMaterial
+          color={disabled ? '#4b5563' : hovered ? '#f87171' : '#ef4444'}
+          roughness={0.15}
+          metalness={0.0}
+          clearcoat={1.0}
+          clearcoatRoughness={0.05}
+          emissive={disabled ? '#000000' : '#ff0000'}
+          emissiveIntensity={hovered ? 0.2 : 0.05}
         />
-      </mesh>
-
-      {/* Button ring/bezel */}
-      <mesh position={[0, 0, -0.008]}>
-        <cylinderGeometry args={[0.032, 0.032, 0.005, 16]} />
-        <meshStandardMaterial color="#374151" roughness={0.8} metalness={0.1} />
       </mesh>
     </group>
   );
@@ -85,10 +90,10 @@ function Button({ position, label, onClick, disabled }: ButtonProps) {
 
 export function DeviceButtons({ onAClick, onBClick, onCClick, disabled }: DeviceButtonsProps) {
   return (
-    <group position={[0, -0.18, 0.12]} rotation={[Math.PI / 2, 0, 0]}>
+    <group position={[0, -0.24, 0.16]}>
       {/* Button A - Feed (left) */}
       <Button
-        position={[-0.07, 0, 0]}
+        position={[-0.08, 0, 0]}
         label="A"
         onClick={onAClick}
         disabled={disabled}
@@ -104,7 +109,7 @@ export function DeviceButtons({ onAClick, onBClick, onCClick, disabled }: Device
 
       {/* Button C - Settings (right) */}
       <Button
-        position={[0.07, 0, 0]}
+        position={[0.08, 0, 0]}
         label="C"
         onClick={onCClick}
         disabled={disabled}

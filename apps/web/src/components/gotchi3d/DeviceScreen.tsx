@@ -13,16 +13,19 @@ interface DeviceScreenProps {
 }
 
 const CANVAS_WIDTH = 64;
-const CANVAS_HEIGHT = 48;
+const CANVAS_HEIGHT = 64;
 const PIXEL_SIZE = 2;
 
-// Classic LCD green color palette
+// Classic LCD green color palette - higher contrast
 const LCD_COLORS = {
   background: '#9bbc0f',
   backgroundDark: '#8bac0f',
   pixel: '#0f380f',
   pixelLight: '#306230',
 };
+
+// Sprite scale - larger for better visibility
+const SPRITE_SCALE = 6;
 
 export function DeviceScreen({ status, agentType, healthLevel, activityLevel }: DeviceScreenProps) {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -115,23 +118,14 @@ export function DeviceScreen({ status, agentType, healthLevel, activityLevel }: 
     ctx.fillStyle = LCD_COLORS.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Add subtle scanline effect
-    ctx.fillStyle = LCD_COLORS.backgroundDark;
-    for (let y = 0; y < canvas.height; y += 4) {
-      ctx.fillRect(0, y, canvas.width, 1);
-    }
-
     // Get current sprite based on status
     const sprite = getCurrentSprite(status, frameRef.current);
 
-    // Draw main character (centered, scaled up)
-    const charX = (CANVAS_WIDTH - 16) / 2; // 8 pixels * 2 scale
-    const charY = 8;
-    drawSprite(ctx, sprite, charX, charY, 2);
-
-    // Draw status meters at bottom
-    drawHearts(ctx, healthLevel, 4, 38);
-    drawStars(ctx, activityLevel, 34, 38);
+    // Draw main character (centered, large and visible)
+    const spriteSize = 8 * SPRITE_SCALE; // 8 pixel sprite * scale
+    const charX = (CANVAS_WIDTH - spriteSize) / 2;
+    const charY = (CANVAS_HEIGHT - spriteSize) / 2 - 2; // slightly above center
+    drawSprite(ctx, sprite, charX, charY, SPRITE_SCALE);
 
     // Mark texture for update
     texture.needsUpdate = true;
@@ -140,8 +134,8 @@ export function DeviceScreen({ status, agentType, healthLevel, activityLevel }: 
   if (!texture) return null;
 
   return (
-    <mesh ref={meshRef} position={[0, 0.08, 0.17]}>
-      <planeGeometry args={[0.2, 0.15]} />
+    <mesh ref={meshRef} position={[0, 0.05, 0.18]}>
+      <planeGeometry args={[0.32, 0.32]} />
       <meshBasicMaterial map={texture} />
     </mesh>
   );

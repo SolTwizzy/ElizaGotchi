@@ -1,7 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/hooks/use-auth';
 
 const agents = [
   { id: 'portfolio-tracker', name: 'Portfolio Tracker', desc: 'Track your wallet balances', avatar: '/toma1.png', color: '#FF6B9D' },
@@ -16,6 +19,33 @@ const agents = [
 ];
 
 export default function HomePage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace('/dashboard/gotchi');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Show nothing while checking auth to prevent flash
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#1a1033] via-[#0d1a2d] to-[#1a0d2e] flex items-center justify-center">
+        <div className="text-4xl animate-pulse">🥚</div>
+      </div>
+    );
+  }
+
+  // If authenticated, show loading while redirecting
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#1a1033] via-[#0d1a2d] to-[#1a0d2e] flex items-center justify-center">
+        <div className="text-4xl animate-pulse">🥚</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a1033] via-[#0d1a2d] to-[#1a0d2e] text-white overflow-hidden font-tamaconnect">
       {/* Animated background particles */}

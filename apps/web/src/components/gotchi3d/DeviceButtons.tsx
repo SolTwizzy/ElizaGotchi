@@ -90,7 +90,7 @@ function Button({ position, label, onClick, disabled }: ButtonProps) {
 
 export function DeviceButtons({ onAClick, onBClick, onCClick, disabled }: DeviceButtonsProps) {
   return (
-    <group position={[0, -0.24, 0.16]}>
+    <group position={[0, -0.32, 0.16]}>
       {/* Button A - Feed (left) */}
       <Button
         position={[-0.08, 0, 0]}

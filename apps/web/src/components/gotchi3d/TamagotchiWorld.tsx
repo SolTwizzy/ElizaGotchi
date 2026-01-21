@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { TamagotchiCanvas } from './TamagotchiCanvas';
 import { SoundProvider, useSound } from './SoundManager';
 import { AgentChatArea } from '../gotchi/agent-chat-area';
@@ -141,14 +141,23 @@ function TamagotchiWorldInner({
     ? agents.find((a) => a.id === selectedAgent.id) || null
     : null;
 
+  // Get the latest assistant message for speech bubble
+  const latestAssistantMessage = useMemo(() => {
+    const assistantMessages = chatMessages.filter((m) => m.role === 'assistant');
+    return assistantMessages.length > 0
+      ? assistantMessages[assistantMessages.length - 1].content
+      : undefined;
+  }, [chatMessages]);
+
   return (
-    <div className="relative w-full h-full min-h-[600px]">
+    <div className="absolute inset-0">
       {/* 3D Canvas - takes full space */}
       <div className="absolute inset-0">
         <TamagotchiCanvas
           agents={agents}
           selectedAgentId={currentSelectedAgent?.id || null}
           viewMode={viewMode}
+          latestMessage={latestAssistantMessage}
           onSelectAgent={handleSelectAgent}
           onDeselectAgent={handleDeselectAgent}
           onFeed={handleFeed}

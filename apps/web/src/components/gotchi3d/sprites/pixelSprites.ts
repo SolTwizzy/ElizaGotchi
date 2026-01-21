@@ -179,21 +179,21 @@ export function getCurrentSprite(status: string, frame: number): SpriteFrame {
   return sprites[spriteKey] || sprites.idle;
 }
 
-// Agent type to color mapping (for shell)
+// Agent type to color mapping (for shell) - bright, fun Tamagotchi colors!
 export const agentColors: Record<string, { shell: string; accent: string; glow: string }> = {
-  'whale-watcher': { shell: '#3b82f6', accent: '#06b6d4', glow: '#60a5fa' },
-  'portfolio-tracker': { shell: '#a855f7', accent: '#ec4899', glow: '#c084fc' },
-  'airdrop-hunter': { shell: '#22c55e', accent: '#eab308', glow: '#4ade80' },
-  'gas-monitor': { shell: '#f97316', accent: '#facc15', glow: '#fb923c' },
-  'treasury-watcher': { shell: '#eab308', accent: '#3b82f6', glow: '#fde047' },
-  'contract-monitor': { shell: '#ef4444', accent: '#1f2937', glow: '#f87171' },
-  'market-scanner': { shell: '#10b981', accent: '#f8fafc', glow: '#34d399' },
-  'reading-list-manager': { shell: '#8b5cf6', accent: '#f472b6', glow: '#a78bfa' },
-  'github-issue-triager': { shell: '#7c3aed', accent: '#1f2937', glow: '#8b5cf6' },
-  'bug-reporter': { shell: '#facc15', accent: '#1f2937', glow: '#fde047' },
-  'changelog-writer': { shell: '#06b6d4', accent: '#f8fafc', glow: '#22d3ee' },
-  'community-manager': { shell: '#ec4899', accent: '#8b5cf6', glow: '#f472b6' },
-  'lore-keeper': { shell: '#d97706', accent: '#78350f', glow: '#fbbf24' },
+  'whale-watcher': { shell: '#60a5fa', accent: '#38bdf8', glow: '#93c5fd' },      // Bright blue
+  'portfolio-tracker': { shell: '#c084fc', accent: '#e879f9', glow: '#d8b4fe' },  // Lavender purple
+  'airdrop-hunter': { shell: '#4ade80', accent: '#fde047', glow: '#86efac' },     // Mint green
+  'gas-monitor': { shell: '#fb923c', accent: '#fcd34d', glow: '#fdba74' },        // Bright orange
+  'treasury-watcher': { shell: '#fde047', accent: '#a3e635', glow: '#fef08a' },   // Sunny yellow
+  'contract-monitor': { shell: '#f87171', accent: '#fda4af', glow: '#fca5a5' },   // Coral red
+  'market-scanner': { shell: '#34d399', accent: '#67e8f9', glow: '#6ee7b7' },     // Teal
+  'reading-list-manager': { shell: '#a78bfa', accent: '#f9a8d4', glow: '#c4b5fd' }, // Soft purple
+  'github-issue-triager': { shell: '#818cf8', accent: '#c084fc', glow: '#a5b4fc' }, // Indigo
+  'bug-reporter': { shell: '#fcd34d', accent: '#fca5a5', glow: '#fef08a' },       // Bright yellow
+  'changelog-writer': { shell: '#22d3ee', accent: '#a5f3fc', glow: '#67e8f9' },   // Cyan
+  'community-manager': { shell: '#f472b6', accent: '#c084fc', glow: '#f9a8d4' },  // Hot pink
+  'lore-keeper': { shell: '#fbbf24', accent: '#fb923c', glow: '#fcd34d' },        // Gold
 };
 
 export function getAgentColors(agentType: string) {

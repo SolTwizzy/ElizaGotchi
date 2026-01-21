@@ -22,9 +22,11 @@
     "@elizaos/plugin-openai": "1.6.0",
     "@elizaos/plugin-sql": "1.7.1",
     "@elizaos/plugin-telegram": "1.6.2",
-    "openai": "^4.28.0"
+    "openai": "^4.28.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@types/uuid": "^9.0.0",
     "typescript": "^5.3.3"
   }
 }

@@ -100,5 +100,24 @@ export function useAgentActions(id: string) {
     onSuccess: invalidate,
   });
 
-  return { start, stop, pause, resume };
+  const restart = useMutation({
+    mutationFn: () => agentsApi.restart(id),
+    onSuccess: invalidate,
+  });
+
+  return { start, stop, pause, resume, restart };
+}
+
+export function useRestartAllAgents() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (agentIds: string[]) => {
+      // Restart all agents in parallel
+      await Promise.all(agentIds.map((id) => agentsApi.restart(id)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    },
+  });
 }

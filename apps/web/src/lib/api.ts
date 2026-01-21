@@ -79,6 +79,7 @@ export const agentsApi = {
   stop: (id: string) => api.post(`/api/agents/${id}/stop`),
   pause: (id: string) => api.post(`/api/agents/${id}/pause`),
   resume: (id: string) => api.post(`/api/agents/${id}/resume`),
+  restart: (id: string) => api.post(`/api/agents/${id}/restart`),
   logs: (id: string, limit?: number) =>
     api.get<{ logs: AgentLog[] }>(`/api/agents/${id}/logs`, limit ? { limit: String(limit) } : undefined),
   types: () => api.get<{ types: Record<string, AgentType> }>('/api/agents/types'),

@@ -55,8 +55,8 @@ export function DeviceShell({ color, glowColor, hovered, status }: DeviceShellPr
   const starburstGeometry = useMemo(() => {
     const shape = new THREE.Shape();
     const points = 8;
-    const outerRadius = 0.26;
-    const innerRadius = 0.20;
+    const outerRadius = 0.32;
+    const innerRadius = 0.25;
 
     for (let i = 0; i < points * 2; i++) {
       const angle = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
@@ -78,17 +78,24 @@ export function DeviceShell({ color, glowColor, hovered, status }: DeviceShellPr
     });
   }, []);
 
+  // Always use the agent's bright color - status shown via emissive glow
   const shellColor = useMemo(() => {
-    if (status === 'stopped' || status === 'pending') return '#6b7280';
-    if (status === 'error') return '#dc2626';
-    return color;
+    if (status === 'stopped' || status === 'pending') return '#9ca3af'; // Light gray when off
+    return color; // Keep bright color for running/error
   }, [color, status]);
 
   const emissiveColor = useMemo(() => {
-    if (status === 'error') return '#ef4444';
+    if (status === 'error') return '#ff0000'; // Red glow for error
     if (hovered || status === 'running') return glowColor;
     return '#000000';
   }, [hovered, status, glowColor]);
+
+  const emissiveIntensity = useMemo(() => {
+    if (status === 'error') return 0.3; // Strong red glow for error
+    if (hovered) return 0.2;
+    if (status === 'running') return 0.1;
+    return 0;
+  }, [hovered, status]);
 
   return (
     <group>
@@ -101,7 +108,7 @@ export function DeviceShell({ color, glowColor, hovered, status }: DeviceShellPr
           clearcoat={1.0}
           clearcoatRoughness={0.05}
           emissive={emissiveColor}
-          emissiveIntensity={hovered ? 0.2 : status === 'running' ? 0.08 : 0}
+          emissiveIntensity={emissiveIntensity}
         />
       </mesh>
 
@@ -130,11 +137,6 @@ export function DeviceShell({ color, glowColor, hovered, status }: DeviceShellPr
         <meshStandardMaterial color="#d97706" roughness={0.2} metalness={0.35} />
       </mesh>
 
-      {/* Button area - subtle recessed area for buttons */}
-      <mesh position={[0, -0.24, 0.14]}>
-        <planeGeometry args={[0.28, 0.09]} />
-        <meshStandardMaterial color="#0a0a0a" roughness={0.95} />
-      </mesh>
 
       {/* Keychain loop */}
       <group position={[0, 0.44, -0.05]}>
@@ -148,17 +150,6 @@ export function DeviceShell({ color, glowColor, hovered, status }: DeviceShellPr
         </mesh>
       </group>
 
-      {/* Status glow */}
-      {(status === 'error' || status === 'starting' || hovered) && (
-        <mesh position={[0, -0.32, 0.17]}>
-          <circleGeometry args={[0.06, 24]} />
-          <meshBasicMaterial
-            color={status === 'error' ? '#ef4444' : glowColor}
-            transparent
-            opacity={0.35}
-          />
-        </mesh>
-      )}
     </group>
   );
 }

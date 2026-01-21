@@ -11,6 +11,7 @@ interface SceneProps {
   agents: Agent[];
   selectedAgentId: string | null;
   viewMode: 'galaxy' | 'planet';
+  latestMessage?: string;
   onSelectAgent: (agent: Agent) => void;
   onDeselectAgent: () => void;
   onFeed: (agent: Agent) => void;
@@ -64,6 +65,7 @@ export default function Scene({
   agents,
   selectedAgentId,
   viewMode,
+  latestMessage,
   onSelectAgent,
   onDeselectAgent,
   onFeed,
@@ -133,6 +135,7 @@ export default function Scene({
               isSelected={isSelected}
               viewMode={viewMode}
               showLabel={viewMode === 'galaxy'}
+              latestMessage={isSelected ? latestMessage : undefined}
               onClick={() => onSelectAgent(agent)}
               onFeed={() => onFeed(agent)}
               onChat={() => onChat(agent)}

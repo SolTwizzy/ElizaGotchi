@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { DeviceShell } from './DeviceShell';
 import { DeviceScreen } from './DeviceScreen';
 import { DeviceButtons } from './DeviceButtons';
+import { SpeechBubble } from './SpeechBubble';
 import { getAgentColors } from './sprites/pixelSprites';
 import { useSound } from './SoundManager';
 import { Planet, getPlanetForAgentType } from './planets';
@@ -18,6 +19,7 @@ interface TamagotchiDeviceProps {
   isSelected: boolean;
   viewMode: 'galaxy' | 'planet';
   showLabel?: boolean;
+  latestMessage?: string;
   onClick: () => void;
   onFeed: () => void;
   onChat: () => void;
@@ -30,6 +32,7 @@ export function TamagotchiDevice({
   isSelected,
   viewMode,
   showLabel = true,
+  latestMessage,
   onClick,
   onFeed,
   onChat,
@@ -79,26 +82,34 @@ export function TamagotchiDevice({
     }
   }, [agent.status]);
 
-  // Floating animation
+  // Floating animation - only in galaxy view, keep stable in planet view
   useFrame((state) => {
-    if (groupRef.current && !isSelected) {
-      // Gentle floating motion
+    if (!groupRef.current) return;
+
+    if (isPlanetView) {
+      // Planet view: keep device completely stable, face camera
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, 0, 0.15);
+      groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, 0, 0.15);
+      groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, position[0], 0.1);
+      groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, position[1], 0.1);
+    } else if (!isSelected) {
+      // Galaxy view (not selected): gentle floating motion
       const baseY = position[1];
-      const floatOffset = Math.sin(state.clock.elapsedTime * 0.8 + position[0] * 2) * 0.05;
+      const floatOffset = Math.sin(state.clock.elapsedTime * 0.8 + position[0] * 2) * 0.04;
       groupRef.current.position.y = baseY + floatOffset;
 
-      // Subtle rotation wobble
-      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5 + position[0]) * 0.1;
-      groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.3 + position[1]) * 0.05;
-    } else if (groupRef.current && isSelected) {
-      // Face camera when selected
+      // Very subtle Y rotation only (no X rotation - it causes forward/backward appearance)
+      groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.4 + position[0]) * 0.05;
+      groupRef.current.rotation.x = 0;
+    } else {
+      // Galaxy view (selected): face camera smoothly
       groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, 0, 0.1);
       groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, 0, 0.1);
     }
 
-    // Shake animation for error status
-    if (groupRef.current && agent.status === 'error') {
-      const shake = Math.sin(state.clock.elapsedTime * 20) * 0.01;
+    // Error shake - only in galaxy view, gentler
+    if (agent.status === 'error' && !isPlanetView) {
+      const shake = Math.sin(state.clock.elapsedTime * 8) * 0.008;
       groupRef.current.position.x = position[0] + shake;
     }
   });
@@ -144,13 +155,13 @@ export function TamagotchiDevice({
       {/* Planet - large and to the left in planet view, small beside device in galaxy view */}
       <Planet
         config={planetConfig}
-        position={isPlanetView ? [-3.5, 0, 0] : [1.2, 0, 0]}
-        scale={isPlanetView ? 2 : (isSelected ? 1.2 : 0.8)}
+        position={isPlanetView ? [-5.5, 0, -2] : [1.2, 0, 0]}
+        scale={isPlanetView ? 1.4 : (isSelected ? 1.2 : 0.8)}
         isActive={isSelected}
       />
 
-      {/* Device group - much larger in planet view for visibility */}
-      <group position={isPlanetView ? [0, 0, 0] : [0, 0, 0]} scale={isPlanetView ? 4 : 1}>
+      {/* Device group - larger in planet view for visibility */}
+      <group position={isPlanetView ? [0, 0, 0] : [0, 0, 0]} scale={isPlanetView ? 2.5 : 1}>
         {/* Main shell */}
         <DeviceShell
           color={colors.shell}
@@ -174,8 +185,16 @@ export function TamagotchiDevice({
           onCClick={onSettings}
           disabled={!isSelected}
         />
-
       </group>
+
+      {/* Speech bubble - outside scaled group to render correctly */}
+      {isPlanetView && latestMessage && (
+        <SpeechBubble
+          message={latestMessage}
+          position={[2.5, 1.5, 0]}
+          maxWidth={220}
+        />
+      )}
     </group>
   );
 }

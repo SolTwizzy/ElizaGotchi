@@ -20,13 +20,25 @@ interface RunningAgent {
   heartbeatIntervalId?: ReturnType<typeof setInterval>;
 }
 
+interface RetryInfo {
+  count: number;
+  lastAttempt: Date;
+  nextAttemptAfter: Date;
+}
+
+const MAX_AUTO_RESTART_RETRIES = 3;
+const RETRY_BACKOFF_MS = [10000, 30000, 60000]; // 10s, 30s, 60s
+
 class AgentOrchestrator {
   private runningAgents: Map<string, RunningAgent> = new Map();
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+  private errorRestartInterval: ReturnType<typeof setInterval> | null = null;
   private recoveryInProgress: Set<string> = new Set();
+  private retryAttempts: Map<string, RetryInfo> = new Map();
 
   constructor() {
     this.startHeartbeatMonitor();
+    this.startErrorRestartMonitor();
   }
 
   /**
@@ -130,6 +142,91 @@ class AgentOrchestrator {
     this.heartbeatInterval = setInterval(() => {
       this.checkAgentHealth();
     }, 30000);
+  }
+
+  /**
+   * Monitor for agents in error state and auto-restart them.
+   * This ensures agents recover from transient failures automatically.
+   */
+  private startErrorRestartMonitor() {
+    // Check for error agents every 15 seconds
+    this.errorRestartInterval = setInterval(() => {
+      this.checkAndRestartErrorAgents();
+    }, 15000);
+  }
+
+  private async checkAndRestartErrorAgents() {
+    try {
+      // Find all agents in error state
+      const errorAgents = await db.query.agents.findMany({
+        where: eq(agents.status, 'error'),
+      });
+
+      const now = new Date();
+
+      for (const agent of errorAgents) {
+        // Skip if recovery is already in progress
+        if (this.recoveryInProgress.has(agent.id)) {
+          continue;
+        }
+
+        // Check retry info
+        const retryInfo = this.retryAttempts.get(agent.id);
+
+        if (retryInfo) {
+          // Check if we've exceeded max retries
+          if (retryInfo.count >= MAX_AUTO_RESTART_RETRIES) {
+            // Don't retry anymore - user needs to manually intervene
+            continue;
+          }
+
+          // Check if enough time has passed since last attempt
+          if (now < retryInfo.nextAttemptAfter) {
+            continue;
+          }
+        }
+
+        // Attempt auto-restart
+        console.log(`[AgentOrchestrator] Auto-restarting error agent ${agent.id} (${agent.name})`);
+        this.recoveryInProgress.add(agent.id);
+
+        try {
+          // Reset status to allow restart
+          await this.updateAgentStatus(agent.id, 'stopped');
+          await this.startAgent(agent.id, agent.userId);
+
+          // Success - clear retry info
+          this.retryAttempts.delete(agent.id);
+          await this.logAgentEvent(agent.id, 'info', 'Agent auto-recovered from error state');
+          console.log(`[AgentOrchestrator] Agent ${agent.id} auto-recovered successfully`);
+        } catch (error) {
+          // Failed - update retry info
+          const currentRetries = retryInfo?.count ?? 0;
+          const nextRetryIndex = Math.min(currentRetries, RETRY_BACKOFF_MS.length - 1);
+          const backoffMs = RETRY_BACKOFF_MS[nextRetryIndex];
+
+          this.retryAttempts.set(agent.id, {
+            count: currentRetries + 1,
+            lastAttempt: now,
+            nextAttemptAfter: new Date(now.getTime() + backoffMs),
+          });
+
+          await this.updateAgentStatus(agent.id, 'error');
+          await this.logAgentEvent(
+            agent.id,
+            'warn',
+            `Auto-restart attempt ${currentRetries + 1}/${MAX_AUTO_RESTART_RETRIES} failed: ${error}. Next attempt in ${backoffMs / 1000}s`
+          );
+          console.log(
+            `[AgentOrchestrator] Agent ${agent.id} auto-restart failed (attempt ${currentRetries + 1}/${MAX_AUTO_RESTART_RETRIES})`
+          );
+        } finally {
+          this.recoveryInProgress.delete(agent.id);
+        }
+      }
+    } catch (error) {
+      console.error('[AgentOrchestrator] Error in checkAndRestartErrorAgents:', error);
+    }
   }
 
   private async checkAgentHealth() {
@@ -363,6 +460,8 @@ class AgentOrchestrator {
   }
 
   async restartAgent(agentId: string, userId: string): Promise<void> {
+    // Clear any retry tracking since this is a manual restart
+    this.retryAttempts.delete(agentId);
     await this.stopAgent(agentId, userId);
     await this.startAgent(agentId, userId);
   }
@@ -455,6 +554,9 @@ class AgentOrchestrator {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
     }
+    if (this.errorRestartInterval) {
+      clearInterval(this.errorRestartInterval);
+    }
 
     // Stop all running agents
     for (const [agentId, agent] of this.runningAgents) {
@@ -471,6 +573,7 @@ class AgentOrchestrator {
     }
 
     this.runningAgents.clear();
+    this.retryAttempts.clear();
   }
 }
 

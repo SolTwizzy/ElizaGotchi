@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAgents, useAgentActions, useDeleteAgent } from '@/hooks/use-agents';
+import { useAgents, useAgentActions, useDeleteAgent, useRestartAllAgents } from '@/hooks/use-agents';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Bot,
@@ -16,6 +16,8 @@ import {
   MoreHorizontal,
   Search,
   Filter,
+  RefreshCcw,
+  AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -37,6 +39,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { Agent } from '@/lib/api';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { AgentAvatar } from '@/components/gotchi/agent-avatar';
 
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
@@ -77,9 +86,7 @@ function AgentCard({ agent }: { agent: Agent }) {
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-start justify-between pb-2">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20">
-              <Bot className="h-5 w-5 text-purple-400" />
-            </div>
+            <AgentAvatar agentType={agent.type} status={agent.status} size="sm" />
             <div>
               <Link href={`/dashboard/agents/${agent.id}`}>
                 <CardTitle className="text-base hover:underline cursor-pointer">
@@ -183,6 +190,7 @@ export default function AgentsPage() {
   const { data, isLoading } = useAgents();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<string | null>(null);
+  const restartAll = useRestartAllAgents();
 
   const agents = data?.agents ?? [];
   const filteredAgents = agents.filter((agent) => {
@@ -251,6 +259,41 @@ export default function AgentsPage() {
               Errors ({statusCounts.error || 0})
             </Button>
           </div>
+
+          {/* Restart All Button */}
+          {agents.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const agentIds = agents
+                        .filter((a) => a.status === 'running' || a.status === 'error' || a.status === 'paused')
+                        .map((a) => a.id);
+                      if (agentIds.length > 0) {
+                        restartAll.mutate(agentIds);
+                      }
+                    }}
+                    disabled={restartAll.isPending}
+                    className="ml-auto"
+                  >
+                    <RefreshCcw className={`mr-2 h-4 w-4 ${restartAll.isPending ? 'animate-spin' : ''}`} />
+                    Restart All
+                    <AlertCircle className="ml-1.5 h-3.5 w-3.5 text-yellow-500" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="font-medium">Memory is preserved!</p>
+                  <p className="text-xs text-muted-foreground">
+                    Restarting agents will NOT lose any conversation history or learned data.
+                    Your agents will pick up right where they left off.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
 
         {/* Agent Grid */}

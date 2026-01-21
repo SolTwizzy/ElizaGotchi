@@ -14,9 +14,21 @@ import {
   type Content,
   type IAgentRuntime,
 } from '@elizaos/core';
+import { v5 as uuidv5 } from 'uuid';
 import type { AgentType } from '@elizagotchi/shared';
 import type { CharacterTemplate } from '@elizagotchi/agent-templates';
 import { loadCharacterTemplate } from './character-loader';
+
+// Deterministic UUID namespace for room IDs - must match chat-history.ts
+const ROOM_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+
+/**
+ * Generate a deterministic UUID for a room based on agentId and userId.
+ * This ensures the same room is always used for the same agent-user pair.
+ */
+function generateRoomId(agentId: string, userId: string): UUID {
+  return uuidv5(`${agentId}-${userId}`, ROOM_NAMESPACE) as UUID;
+}
 
 export interface ElizaRuntimeConfig {
   agentId: string;
@@ -331,11 +343,14 @@ export class ElizaRuntime {
 
     try {
       // Create a memory for the incoming message
+      // Use deterministic roomId so we can retrieve history later
+      const roomId = generateRoomId(this.config.agentId, context.userId || 'anonymous');
+
       const userMessage: Memory = {
         id: crypto.randomUUID() as UUID,
         agentId: this.config.agentId as UUID,
         entityId: (context.userId || 'user') as UUID,
-        roomId: (context.roomId || 'default') as UUID,
+        roomId: roomId,
         content: {
           text: content,
           source: context.platform || 'api',

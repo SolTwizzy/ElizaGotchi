@@ -7,6 +7,7 @@ import { db, agents } from '@elizagotchi/database';
 import { AGENT_TYPES } from '@elizagotchi/shared';
 import { requireAuth } from '../middleware/auth';
 import { agentOrchestrator } from '../services/agent-orchestrator';
+import { chatHistoryService } from '../services/chat-history';
 import type { AuthenticatedContext } from '../types';
 
 export const agentRoutes = new Hono<AuthenticatedContext>();
@@ -332,8 +333,8 @@ agentRoutes.post('/:id/chat', zValidator('json', chatMessageSchema), async (c) =
 agentRoutes.get('/:id/chat/history', async (c) => {
   const user = c.get('user');
   const agentId = c.req.param('id');
-  const roomId = c.req.query('roomId') || `chat-${user.id}`;
   const limit = parseInt(c.req.query('limit') || '50', 10);
+  const before = c.req.query('before'); // ISO timestamp cursor for pagination
 
   // Verify ownership
   const agent = await db.query.agents.findFirst({
@@ -344,10 +345,11 @@ agentRoutes.get('/:id/chat/history', async (c) => {
     throw new HTTPException(404, { message: 'Agent not found' });
   }
 
-  // For now, return empty history - ElizaOS memories table integration can be added later
-  // This allows the chat to work without requiring ElizaOS memory persistence to be fully configured
-  return c.json({
-    messages: [],
-    hasMore: false,
+  // Query ElizaOS memories table for chat history
+  const result = await chatHistoryService.getChatHistory(agentId, user.id, {
+    limit,
+    before,
   });
+
+  return c.json(result);
 });

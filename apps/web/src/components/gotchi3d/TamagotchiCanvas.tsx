@@ -21,6 +21,7 @@ interface TamagotchiCanvasProps {
   agents: Agent[];
   selectedAgentId: string | null;
   viewMode: 'galaxy' | 'planet';
+  latestMessage?: string;
   onSelectAgent: (agent: Agent) => void;
   onDeselectAgent: () => void;
   onFeed: (agent: Agent) => void;

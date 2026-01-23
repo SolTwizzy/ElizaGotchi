@@ -1,7 +1,6 @@
 import { eq, and } from 'drizzle-orm';
 import { db, agents, agentLogs, agentConnections, connections } from '@elizagotchi/database';
 import {
-  AgentRuntime,
   ElizaRuntime,
   createElizaRuntime,
 } from '@elizagotchi/agent-runtime';
@@ -9,12 +8,8 @@ import { getTemplate } from '@elizagotchi/agent-templates';
 import { redis, setCache, getCache, deleteCache } from '../lib/redis';
 import type { AgentStatus, AgentType } from '@elizagotchi/shared';
 
-// Use ElizaOS runtime by default (our tables renamed to platform_agents to avoid conflict)
-// Set USE_ELIZAOS=false to use legacy runtime
-const USE_ELIZAOS = process.env.USE_ELIZAOS !== 'false';
-
 interface RunningAgent {
-  runtime: AgentRuntime | ElizaRuntime;
+  runtime: ElizaRuntime;
   startedAt: Date;
   lastHeartbeat: Date;
   heartbeatIntervalId?: ReturnType<typeof setInterval>;
@@ -42,11 +37,31 @@ class AgentOrchestrator {
   }
 
   /**
+   * Get info about agents currently in memory (for debugging)
+   */
+  getRunningAgentsInfo(): { id: string; startedAt: string; lastHeartbeat: string }[] {
+    return Array.from(this.runningAgents.entries()).map(([id, info]) => ({
+      id,
+      startedAt: info.startedAt.toISOString(),
+      lastHeartbeat: info.lastHeartbeat.toISOString(),
+    }));
+  }
+
+  /**
    * Recover agents that were running before server restart.
    * This should be called during server initialization.
+   *
+   * Migrations are pre-run at server startup, so agents can start
+   * sequentially without competing for migration locks.
    */
   async recoverRunningAgents(): Promise<void> {
+    // Wait before starting recovery to let migrations complete
+    const STARTUP_DELAY_MS = parseInt(process.env.AGENT_RECOVERY_DELAY_MS || '10000', 10);
+    console.log(`[AgentOrchestrator] Waiting ${STARTUP_DELAY_MS / 1000}s before agent recovery...`);
+    await new Promise(resolve => setTimeout(resolve, STARTUP_DELAY_MS));
+
     console.log('[AgentOrchestrator] Checking for agents to recover...');
+    console.log('[AgentOrchestrator] Runtime mode: ElizaOS (always enabled)');
 
     try {
       // Find all agents with 'running' or 'starting' status that don't have active runtimes
@@ -62,8 +77,8 @@ class AgentOrchestrator {
       console.log(`[AgentOrchestrator] Found ${agentsToRecover.length} agents to recover`);
 
       // Recover agents one at a time with a delay between each
-      // This prevents migration lock contention and service registration timeouts
-      const RECOVERY_DELAY_MS = 5000; // 5 seconds between each agent
+      // Sequential startup ensures stable initialization
+      const RECOVERY_DELAY_MS = parseInt(process.env.AGENT_RECOVERY_INTERVAL_MS || '5000', 10);
       let recoveredCount = 0;
 
       for (const agent of agentsToRecover) {
@@ -84,7 +99,6 @@ class AgentOrchestrator {
           recoveredCount++;
         } catch (error) {
           console.error(`[AgentOrchestrator] Failed to recover agent ${agent.id}:`, error);
-          // Mark as error so user knows to manually restart
           await this.updateAgentStatus(agent.id, 'error');
           await this.logAgentEvent(agent.id, 'error', `Failed to auto-recover after restart: ${error}`);
         }
@@ -100,7 +114,7 @@ class AgentOrchestrator {
    * Ensure an agent runtime is available, restarting if necessary.
    * This handles cases where the database says 'running' but the runtime was lost (e.g., server restart).
    */
-  async ensureAgentRuntime(agentId: string, userId: string): Promise<AgentRuntime | ElizaRuntime | null> {
+  async ensureAgentRuntime(agentId: string, userId: string): Promise<ElizaRuntime | null> {
     // Check if already running
     const existing = this.runningAgents.get(agentId);
     if (existing) {
@@ -307,67 +321,53 @@ class AgentOrchestrator {
         tone: agentConfig.tone as 'formal' | 'casual' | 'friendly' | 'professional' | undefined,
       };
 
-      let runtime: AgentRuntime | ElizaRuntime;
+      // Always use ElizaOS runtime - it is integral to this application
+      console.log(`[AgentOrchestrator] Starting agent ${agentId} with ElizaOS runtime`);
 
-      if (USE_ELIZAOS) {
-        // Use official ElizaOS runtime
-        console.log(`[AgentOrchestrator] Starting agent ${agentId} with ElizaOS runtime`);
+      // Extract Telegram config from connections or agent config
+      const telegramConn = connectionConfigs.find((c) => c.type === 'telegram');
+      const telegramConfig = telegramConn
+        ? {
+            botToken: process.env.TELEGRAM_BOT_TOKEN,
+            chatId: (telegramConn.config as Record<string, string>)?.chatId,
+          }
+        : undefined;
 
-        // Extract Telegram config from connections or agent config
-        const telegramConn = connectionConfigs.find((c) => c.type === 'telegram');
-        const telegramConfig = telegramConn
-          ? {
-              botToken: process.env.TELEGRAM_BOT_TOKEN,
-              chatId: (telegramConn.config as Record<string, string>)?.chatId,
-            }
-          : undefined;
+      // Extract Discord webhook from connections or agent config
+      const discordConn = connectionConfigs.find((c) => c.type === 'discord');
+      const discordConfig = discordConn
+        ? {
+            webhookUrl: (discordConn.config as Record<string, string>)?.webhookUrl,
+          }
+        : undefined;
 
-        // Extract Discord webhook from connections or agent config
-        const discordConn = connectionConfigs.find((c) => c.type === 'discord');
-        const discordConfig = discordConn
-          ? {
-              webhookUrl: (discordConn.config as Record<string, string>)?.webhookUrl,
-            }
-          : undefined;
+      // Also check agent config for notification settings
+      const notifConfig = agentConfig.notifications as Record<string, unknown> | undefined;
+      const telegram = telegramConfig || (notifConfig?.telegram as { chatId?: string } | undefined
+        ? { botToken: process.env.TELEGRAM_BOT_TOKEN, chatId: (notifConfig?.telegram as { chatId?: string })?.chatId }
+        : undefined);
+      const discord = discordConfig || (notifConfig?.discord as { webhookUrl?: string } | undefined
+        ? { webhookUrl: (notifConfig?.discord as { webhookUrl?: string })?.webhookUrl }
+        : undefined);
 
-        // Also check agent config for notification settings
-        const notifConfig = agentConfig.notifications as Record<string, unknown> | undefined;
-        const telegram = telegramConfig || (notifConfig?.telegram as { chatId?: string } | undefined
-          ? { botToken: process.env.TELEGRAM_BOT_TOKEN, chatId: (notifConfig?.telegram as { chatId?: string })?.chatId }
-          : undefined);
-        const discord = discordConfig || (notifConfig?.discord as { webhookUrl?: string } | undefined
-          ? { webhookUrl: (notifConfig?.discord as { webhookUrl?: string })?.webhookUrl }
-          : undefined);
-
-        runtime = createElizaRuntime({
-          agentId,
-          agentType: agent.type as AgentType,
-          customization,
-          agentConfig,
-          databaseUrl: process.env.DATABASE_URL,
-          apiKeys: {
-            anthropic: process.env.ANTHROPIC_API_KEY,
-          },
-          telegram,
-          discord,
-          onMessage: (msg) => {
-            console.log(`[Agent ${agentId}] Message:`, msg.content.substring(0, 100));
-          },
-          onError: (err) => {
-            console.error(`[Agent ${agentId}] Error:`, err);
-          },
-        });
-      } else {
-        // Use legacy custom runtime
-        console.log(`[AgentOrchestrator] Starting agent ${agentId} with legacy runtime`);
-        runtime = new AgentRuntime({
-          agentType: agent.type as AgentType,
-          customization,
-          agentConfig,
-          plugins: template.plugins.map((p) => ({ name: p })),
-          connections: connectionConfigs,
-        });
-      }
+      const runtime: ElizaRuntime = createElizaRuntime({
+        agentId,
+        agentType: agent.type as AgentType,
+        customization,
+        agentConfig,
+        databaseUrl: process.env.DATABASE_URL,
+        apiKeys: {
+          anthropic: process.env.ANTHROPIC_API_KEY,
+        },
+        telegram,
+        discord,
+        onMessage: (msg) => {
+          console.log(`[Agent ${agentId}] Message:`, msg.content.substring(0, 100));
+        },
+        onError: (err) => {
+          console.error(`[Agent ${agentId}] Error:`, err);
+        },
+      });
 
       await runtime.start();
 
@@ -548,7 +548,7 @@ class AgentOrchestrator {
   /**
    * Get a running agent's runtime for chat functionality
    */
-  getRunningAgentRuntime(agentId: string): AgentRuntime | ElizaRuntime | null {
+  getRunningAgentRuntime(agentId: string): ElizaRuntime | null {
     const runningAgent = this.runningAgents.get(agentId);
     return runningAgent?.runtime ?? null;
   }

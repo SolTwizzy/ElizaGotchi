@@ -13,18 +13,26 @@ import { debugRoutes } from './routes/debug';
 import { telegramBotRouter } from './services/telegram-bot';
 import { botService } from './services/bot-service';
 import { bootstrapDatabase } from './services/db-bootstrap';
+import { elizaMigrations } from './services/eliza-migrations';
 import { agentOrchestrator } from './services/agent-orchestrator';
 import type { AppContext } from './types';
 
 // Initialize services in background (don't block server startup)
-Promise.resolve()
-  .then(() => bootstrapDatabase())
-  .then(() => botService.initialize())
-  .then(() => agentOrchestrator.recoverRunningAgents())
-  .catch((err) => {
-    // Log but don't crash - these are optional services
-    console.error('[API] Background service error:', err);
-  });
+setTimeout(() => {
+  Promise.resolve()
+    .then(() => {
+      console.log('[API] Starting background initialization...');
+      return bootstrapDatabase();
+    })
+    .then(() => elizaMigrations.runMigrations())
+    .then(() => botService.initialize())
+    .then(() => {
+      console.log('[API] Background init complete');
+    })
+    .catch((err) => {
+      console.error('[API] Background service error:', err);
+    });
+}, 1000);
 
 const app = new Hono<AppContext>();
 

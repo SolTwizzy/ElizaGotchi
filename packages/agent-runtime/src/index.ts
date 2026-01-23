@@ -48,7 +48,6 @@ export {
   ModelRouter,
   modelRouter,
   ANTHROPIC_MODELS,
-  OPENAI_MODELS,
 } from './model-router';
 export type {
   ModelProvider,
@@ -57,7 +56,18 @@ export type {
   ChatMessage,
   CompletionRequest,
   CompletionResponse,
+  ToolDefinition,
+  ToolCall,
 } from './model-router';
+
+// Tool Registry
+export {
+  getToolDefinitions,
+  getToolHandler,
+  getToolsForAgentType,
+  getAllBlockchainTools,
+} from './tool-registry';
+export type { ToolHandler, RegisteredTool } from './tool-registry';
 
 // Alert Handler
 export { AlertHandler, createAlertHandler } from './alert-handler';

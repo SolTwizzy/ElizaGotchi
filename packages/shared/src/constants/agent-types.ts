@@ -1,51 +1,37 @@
 /**
- * Available AI models for agents
- * - Free tier: GPT-4o-mini and Claude Haiku (included with platform)
+ * Available AI models for agents (Anthropic Claude only)
+ * - Free tier: Claude Haiku (included with platform)
  * - Premium tier: Requires user's own API key
  */
 export const AI_MODELS = {
   // Free tier models (included)
-  'gpt-4o-mini': {
-    name: 'GPT-4o Mini',
-    provider: 'openai',
-    tier: 'free',
-    description: 'Fast and cost-effective. Great for most tasks.',
-    costPer1kTokens: 0.00015,
-  },
-  'claude-3-haiku': {
-    name: 'Claude 3 Haiku',
+  'claude-3.5-haiku': {
+    name: 'Claude 3.5 Haiku',
     provider: 'anthropic',
     tier: 'free',
-    description: 'Quick responses, excellent for simple tasks.',
-    costPer1kTokens: 0.00025,
+    description: 'Fast and cost-effective. Great for most tasks.',
+    costPer1kTokens: 0.0008,
   },
   // Premium tier models (require own API key)
-  'gpt-4o': {
-    name: 'GPT-4o',
-    provider: 'openai',
-    tier: 'premium',
-    description: 'Most capable OpenAI model. Requires your own API key.',
-    costPer1kTokens: 0.005,
-  },
-  'gpt-4-turbo': {
-    name: 'GPT-4 Turbo',
-    provider: 'openai',
-    tier: 'premium',
-    description: 'Powerful with 128k context. Requires your own API key.',
-    costPer1kTokens: 0.01,
-  },
   'claude-3.5-sonnet': {
     name: 'Claude 3.5 Sonnet',
     provider: 'anthropic',
     tier: 'premium',
-    description: 'Best Claude model for complex tasks. Requires your own API key.',
+    description: 'Best Claude model for complex tasks.',
+    costPer1kTokens: 0.003,
+  },
+  'claude-sonnet-4': {
+    name: 'Claude Sonnet 4',
+    provider: 'anthropic',
+    tier: 'premium',
+    description: 'Latest Claude model with enhanced capabilities.',
     costPer1kTokens: 0.003,
   },
   'claude-3-opus': {
     name: 'Claude 3 Opus',
     provider: 'anthropic',
     tier: 'premium',
-    description: 'Most powerful Claude model. Requires your own API key.',
+    description: 'Most powerful Claude model for complex reasoning.',
     costPer1kTokens: 0.015,
   },
 } as const;
@@ -53,9 +39,9 @@ export const AI_MODELS = {
 export type AIModel = keyof typeof AI_MODELS;
 export type AIModelConfig = (typeof AI_MODELS)[AIModel];
 
-export const FREE_MODELS: AIModel[] = ['gpt-4o-mini', 'claude-3-haiku'];
-export const PREMIUM_MODELS: AIModel[] = ['gpt-4o', 'gpt-4-turbo', 'claude-3.5-sonnet', 'claude-3-opus'];
-export const DEFAULT_MODEL: AIModel = 'gpt-4o-mini';
+export const FREE_MODELS: AIModel[] = ['claude-3.5-haiku'];
+export const PREMIUM_MODELS: AIModel[] = ['claude-3.5-sonnet', 'claude-sonnet-4', 'claude-3-opus'];
+export const DEFAULT_MODEL: AIModel = 'claude-3.5-haiku';
 
 export const AGENT_TYPES = {
   // Crypto & DeFi

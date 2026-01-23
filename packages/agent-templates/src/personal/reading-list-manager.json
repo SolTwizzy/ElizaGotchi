@@ -1,11 +1,11 @@
 {
   "name": "Reading List Manager",
   "description": "An AI assistant that tracks your reading list, summarizes content, and recommends what to read next",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": [],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1500
   },
   "bio": [

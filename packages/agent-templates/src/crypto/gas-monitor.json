@@ -1,11 +1,11 @@
 {
   "name": "Gas Monitor",
   "description": "An AI assistant that tracks gas prices and helps optimize transaction timing",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": ["@elizagotchi/plugin-blockchain"],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1000
   },
   "bio": [

@@ -1,11 +1,11 @@
 {
   "name": "Lore Keeper",
   "description": "An AI assistant that answers questions about anime lore, characters, and storylines",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": [],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1500
   },
   "bio": [

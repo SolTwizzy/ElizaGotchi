@@ -41,9 +41,7 @@ export interface ElizaRuntimeConfig {
   };
   agentConfig: Record<string, unknown>;
   databaseUrl?: string;
-  modelProvider?: 'openai' | 'anthropic';
   apiKeys?: {
-    openai?: string;
     anthropic?: string;
   };
   // Platform integrations
@@ -104,17 +102,15 @@ function convertToElizaCharacter(
 
   // Get model configuration from agentConfig (user selection) or template default
   const agentConfig = config.agentConfig || {};
-  const selectedModel = (agentConfig.model as string) || template.settings?.model || 'gpt-4o-mini';
-  const selectedProvider = (agentConfig.modelProvider as string) || template.modelProvider || 'openai';
+  const selectedModel = (agentConfig.model as string) || template.settings?.model || 'claude-3-5-haiku-20241022';
   const customApiKey = agentConfig.customApiKey as string | undefined;
 
-  // Map our model names to ElizaOS model names
+  // Map our model names to ElizaOS model names (Anthropic only)
   const modelMapping: Record<string, string> = {
-    'gpt-4o-mini': 'gpt-4o-mini',
-    'gpt-4o': 'gpt-4o',
-    'gpt-4-turbo': 'gpt-4-turbo',
-    'claude-3-haiku': 'claude-3-haiku-20240307',
+    'claude-3-haiku': 'claude-3-5-haiku-20241022',
+    'claude-3.5-haiku': 'claude-3-5-haiku-20241022',
     'claude-3.5-sonnet': 'claude-3-5-sonnet-20241022',
+    'claude-sonnet-4': 'claude-sonnet-4-20250514',
     'claude-3-opus': 'claude-3-opus-20240229',
   };
 
@@ -123,15 +119,14 @@ function convertToElizaCharacter(
   // Determine which plugins to use
   const plugins: string[] = [];
 
-  // Add model provider plugin based on user selection
-  if (selectedProvider === 'anthropic') {
-    plugins.push('@elizaos/plugin-anthropic');
-  } else {
-    plugins.push('@elizaos/plugin-openai');
-  }
+  // Always use Anthropic as the model provider
+  plugins.push('@elizaos/plugin-anthropic');
 
-  // Add bootstrap for core functionality
-  plugins.push('@elizaos/plugin-bootstrap');
+  // Bootstrap plugin is optional - skip if SKIP_BOOTSTRAP_PLUGIN is set
+  // This avoids the 30s service registration timeout on resource-constrained deployments
+  if (process.env.SKIP_BOOTSTRAP_PLUGIN !== 'true') {
+    plugins.push('@elizaos/plugin-bootstrap');
+  }
 
   // Add SQL adapter for ElizaOS database (separate from our platform_agents table)
   plugins.push('@elizaos/plugin-sql');
@@ -147,13 +142,9 @@ function convertToElizaCharacter(
     model: elizaModel,
   };
 
-  // If user provided a custom API key, store it for the runtime to use
+  // If user provided a custom API key, store it for Anthropic
   if (customApiKey) {
-    if (selectedProvider === 'openai') {
-      settings.OPENAI_API_KEY = customApiKey;
-    } else if (selectedProvider === 'anthropic') {
-      settings.ANTHROPIC_API_KEY = customApiKey;
-    }
+    settings.ANTHROPIC_API_KEY = customApiKey;
   }
 
   // Add Telegram settings
@@ -213,6 +204,22 @@ export class ElizaRuntime {
     this.state = 'initializing';
 
     try {
+      // Ensure Anthropic API key is available in process.env for plugins that read it directly
+      if (this.config.apiKeys?.anthropic && !process.env.ANTHROPIC_API_KEY) {
+        process.env.ANTHROPIC_API_KEY = this.config.apiKeys.anthropic;
+      }
+
+      // If SKIP_BOOTSTRAP_PLUGIN is set, also set IGNORE_BOOTSTRAP for ElizaOS core
+      if (process.env.SKIP_BOOTSTRAP_PLUGIN === 'true') {
+        process.env.IGNORE_BOOTSTRAP = 'true';
+      }
+
+      // Increase provider timeout for slow embedding initialization (default is only 1000ms)
+      // This helps when local embeddings need time to initialize on cold start
+      if (!process.env.PROVIDERS_TOTAL_TIMEOUT_MS) {
+        process.env.PROVIDERS_TOTAL_TIMEOUT_MS = '30000'; // 30 seconds
+      }
+
       // Load plugins dynamically
       await this.loadPlugins();
 
@@ -222,8 +229,7 @@ export class ElizaRuntime {
         character: this.character,
         plugins: this.loadedPlugins,
         settings: {
-          // Pass API keys through settings
-          OPENAI_API_KEY: this.config.apiKeys?.openai || process.env.OPENAI_API_KEY || '',
+          // Pass Anthropic API key through settings
           ANTHROPIC_API_KEY:
             this.config.apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY || '',
           // plugin-sql expects POSTGRES_URL for external database connection
@@ -252,7 +258,6 @@ export class ElizaRuntime {
 
     // Map of plugin names to their expected module exports
     const pluginMap: Record<string, string> = {
-      '@elizaos/plugin-openai': 'openaiPlugin',
       '@elizaos/plugin-anthropic': 'anthropicPlugin',
       '@elizaos/plugin-bootstrap': 'bootstrapPlugin',
       '@elizaos/plugin-sql': 'sqlPlugin',

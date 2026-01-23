@@ -1,11 +1,11 @@
 {
   "name": "Treasury Watcher",
   "description": "An AI assistant that monitors DAO and project treasuries for inflows and outflows",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": ["@elizagotchi/plugin-blockchain"],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1000
   },
   "bio": [

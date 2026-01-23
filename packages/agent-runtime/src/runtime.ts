@@ -7,7 +7,8 @@ import {
   type LoadedCharacter,
 } from './character-loader';
 import { loadPlugins, type LoadedPlugin, type PluginConfig } from './plugin-loader';
-import { ModelRouter, type ChatMessage, type CompletionResponse } from './model-router';
+import { ModelRouter, type ChatMessage, type CompletionResponse, type ToolDefinition, type ToolCall } from './model-router';
+import { getToolDefinitions, getToolHandler, type ToolHandler } from './tool-registry';
 
 export interface AgentRuntimeConfig {
   agentType: AgentType;
@@ -52,6 +53,8 @@ export class AgentRuntime {
   private modelRouter: ModelRouter;
   private state: AgentState = 'idle';
   private conversationHistory: Map<string, AgentMessage[]> = new Map();
+  private tools: ToolDefinition[] = [];
+  private maxToolIterations = 5; // Prevent infinite tool loops
 
   constructor(config: AgentRuntimeConfig) {
     this.config = config;
@@ -61,6 +64,9 @@ export class AgentRuntime {
     const baseTemplate = loadCharacterTemplate(config.agentType);
     this.character = mergeCustomizations(baseTemplate, config.customization);
     this.systemPrompt = buildSystemPrompt(this.character);
+
+    // Load tools for this agent type
+    this.tools = getToolDefinitions(config.agentType);
   }
 
   async start(): Promise<void> {
@@ -139,20 +145,53 @@ export class AgentRuntime {
       })),
     ];
 
-    // Get completion
-    const response = await this.modelRouter.complete({
-      messages,
-      tier: 'default',
-    });
+    // Tool call loop
+    let iteration = 0;
+    let response: CompletionResponse;
+
+    while (iteration < this.maxToolIterations) {
+      iteration++;
+
+      // Get completion with tools
+      response = await this.modelRouter.complete({
+        messages,
+        tier: 'default',
+        tools: this.tools.length > 0 ? this.tools : undefined,
+      });
+
+      // If no tool calls, we're done
+      if (!response.toolCalls || response.toolCalls.length === 0) {
+        break;
+      }
+
+      // Execute tool calls
+      for (const toolCall of response.toolCalls) {
+        const toolResult = await this.executeToolCall(toolCall);
+
+        // Add assistant message with tool call (for context)
+        messages.push({
+          role: 'assistant',
+          content: response.content || `Calling ${toolCall.function.name}...`,
+        });
+
+        // Add tool result message
+        messages.push({
+          role: 'tool',
+          content: JSON.stringify(toolResult),
+          tool_call_id: toolCall.id,
+        });
+      }
+    }
 
     // Add assistant message
     const assistantMessage: AgentMessage = {
       role: 'assistant',
-      content: response.content,
+      content: response!.content,
       timestamp: new Date(),
       metadata: {
-        model: response.model,
-        usage: response.usage,
+        model: response!.model,
+        usage: response!.usage,
+        toolsUsed: response!.toolCalls?.map(tc => tc.function.name),
       },
     };
     history.push(assistantMessage);
@@ -164,6 +203,78 @@ export class AgentRuntime {
     this.config.onMessage?.(assistantMessage);
 
     return assistantMessage;
+  }
+
+  private async executeToolCall(toolCall: ToolCall): Promise<unknown> {
+    const handler = getToolHandler(toolCall.function.name);
+    if (!handler) {
+      return { error: `Unknown tool: ${toolCall.function.name}` };
+    }
+
+    try {
+      const args = JSON.parse(toolCall.function.arguments);
+      const result = await this.executeToolWithHandler(handler, args);
+      return result;
+    } catch (error) {
+      console.error(`Tool execution error for ${toolCall.function.name}:`, error);
+      return { error: `Tool execution failed: ${(error as Error).message}` };
+    }
+  }
+
+  private async executeToolWithHandler(handler: ToolHandler, args: Record<string, unknown>): Promise<unknown> {
+    const plugin = this.plugins.get(handler.pluginName);
+    if (!plugin) {
+      throw new Error(`Plugin not loaded: ${handler.pluginName}`);
+    }
+
+    // Get the provider
+    const providers = plugin.providers;
+    let provider: Record<string, unknown> | undefined;
+
+    if (Array.isArray(providers)) {
+      provider = providers.find((p) => p.name === handler.providerName) as Record<string, unknown>;
+    } else {
+      provider = (providers as Record<string, unknown>)[handler.providerName] as Record<string, unknown>;
+    }
+
+    if (!provider) {
+      throw new Error(`Provider not found: ${handler.providerName}`);
+    }
+
+    // Get the method
+    const method = provider[handler.method];
+    if (typeof method !== 'function') {
+      throw new Error(`Method not found: ${handler.method}`);
+    }
+
+    // Call with appropriate arguments based on the tool
+    switch (handler.method) {
+      case 'getRecentWhaleActivity':
+        // Args: tokenAddress, minValueUsd, chain, limit
+        return method(
+          '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH as default
+          args.min_value_usd ?? 100000,
+          args.chain ?? 'ethereum',
+          args.limit ?? 10
+        );
+      case 'getKnownWhalesByChain':
+        return method(args.chain ?? 'ethereum');
+      case 'getCurrentGasPrices':
+        return method(args.chain ?? 'ethereum');
+      case 'getOptimalTransactionTime':
+        return method(args.chain ?? 'ethereum');
+      case 'getEVMWalletBalance':
+        return method(args.address, args.chain ?? 'ethereum');
+      case 'checkAirdropEligibility':
+        return method(args.address, args.protocol);
+      case 'getUpcomingAirdrops':
+        return method(args.status ?? 'all');
+      case 'getContractInfo':
+        return method(args.address, args.chain ?? 'ethereum');
+      default:
+        // Generic call with args spread
+        return method(...Object.values(args));
+    }
   }
 
   async executeAction(

@@ -1,11 +1,11 @@
 {
   "name": "Changelog Writer",
   "description": "An AI assistant that monitors commits and PRs to generate release notes",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": ["@elizagotchi/plugin-github"],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1500
   },
   "bio": [

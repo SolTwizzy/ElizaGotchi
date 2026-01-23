@@ -1,11 +1,11 @@
 {
   "name": "GitHub Issue Triager",
   "description": "An AI assistant that labels issues, answers common questions, and routes to maintainers",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": ["@elizagotchi/plugin-github"],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1000
   },
   "bio": [

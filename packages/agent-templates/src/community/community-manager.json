@@ -1,11 +1,11 @@
 {
   "name": "Community Manager",
   "description": "An AI assistant that welcomes new members, answers FAQs, moderates conversations, and enforces rules",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": [],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1000
   },
   "bio": [

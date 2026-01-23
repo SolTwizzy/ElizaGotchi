@@ -1,17 +1,11 @@
-import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 
-export type ModelProvider = 'openai' | 'anthropic';
+export type ModelProvider = 'anthropic';
 export type ModelTier = 'fast' | 'default' | 'complex';
 
 export const ANTHROPIC_MODELS = {
   HAIKU: 'claude-3-5-haiku-20241022',
   SONNET: 'claude-sonnet-4-20250514',
-} as const;
-
-export const OPENAI_MODELS = {
-  GPT4O_MINI: 'gpt-4o-mini',
-  GPT4O: 'gpt-4o',
 } as const;
 
 export interface ModelConfig {
@@ -22,8 +16,35 @@ export interface ModelConfig {
 }
 
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  tool_call_id?: string;
+}
+
+export interface ToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: 'object';
+      properties: Record<string, {
+        type: string;
+        description: string;
+        enum?: string[];
+      }>;
+      required?: string[];
+    };
+  };
+}
+
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
 }
 
 export interface CompletionRequest {
@@ -32,6 +53,7 @@ export interface CompletionRequest {
   maxTokens?: number;
   temperature?: number;
   tier?: ModelTier;
+  tools?: ToolDefinition[];
 }
 
 export interface CompletionResponse {
@@ -42,37 +64,35 @@ export interface CompletionResponse {
     completionTokens: number;
     totalTokens: number;
   };
+  toolCalls?: ToolCall[];
+  finishReason?: 'stop' | 'tool_calls' | 'length';
 }
 
 const MODEL_CONFIGS: Record<ModelTier, ModelConfig> = {
   fast: {
-    provider: 'openai',
-    model: 'gpt-4o-mini',
+    provider: 'anthropic',
+    model: ANTHROPIC_MODELS.HAIKU,
     maxTokens: 500,
     temperature: 0.7,
   },
   default: {
-    provider: 'openai',
-    model: 'gpt-4o-mini',
+    provider: 'anthropic',
+    model: ANTHROPIC_MODELS.HAIKU,
     maxTokens: 1000,
     temperature: 0.7,
   },
   complex: {
-    provider: 'openai',
-    model: 'gpt-4o',
+    provider: 'anthropic',
+    model: ANTHROPIC_MODELS.SONNET,
     maxTokens: 2000,
     temperature: 0.7,
   },
 };
 
 export class ModelRouter {
-  private openai: OpenAI;
   private anthropic: Anthropic;
 
-  constructor(config?: { openaiApiKey?: string; anthropicApiKey?: string }) {
-    this.openai = new OpenAI({
-      apiKey: config?.openaiApiKey || process.env.OPENAI_API_KEY,
-    });
+  constructor(config?: { anthropicApiKey?: string }) {
     this.anthropic = new Anthropic({
       apiKey: config?.anthropicApiKey || process.env.ANTHROPIC_API_KEY,
     });
@@ -85,65 +105,93 @@ export class ModelRouter {
     const model = request.model || modelConfig.model;
     const maxTokens = request.maxTokens || modelConfig.maxTokens;
     const temperature = request.temperature || modelConfig.temperature;
+    const tools = request.tools;
 
-    if (modelConfig.provider === 'anthropic' || model.startsWith('claude')) {
-      return this.completeAnthropic(request.messages, model, maxTokens, temperature);
-    }
-
-    return this.completeOpenAI(request.messages, model, maxTokens, temperature);
-  }
-
-  private async completeOpenAI(
-    messages: ChatMessage[],
-    model: string,
-    maxTokens: number,
-    temperature: number
-  ): Promise<CompletionResponse> {
-    const response = await this.openai.chat.completions.create({
-      model,
-      messages,
-      max_tokens: maxTokens,
-      temperature,
-    });
-
-    const choice = response.choices[0];
-    if (!choice.message.content) {
-      throw new Error('No content in response');
-    }
-
-    return {
-      content: choice.message.content,
-      model: response.model,
-      usage: {
-        promptTokens: response.usage?.prompt_tokens || 0,
-        completionTokens: response.usage?.completion_tokens || 0,
-        totalTokens: response.usage?.total_tokens || 0,
-      },
-    };
+    return this.completeAnthropic(request.messages, model, maxTokens, temperature, tools);
   }
 
   private async completeAnthropic(
     messages: ChatMessage[],
     model: string,
     maxTokens: number,
-    temperature: number
+    temperature: number,
+    tools?: ToolDefinition[]
   ): Promise<CompletionResponse> {
     // Extract system message if present
     const systemMessage = messages.find((m) => m.role === 'system');
-    const conversationMessages = messages
-      .filter((m) => m.role !== 'system')
-      .map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }));
 
-    const response = await this.anthropic.messages.create({
+    // Convert messages to Anthropic format (handle tool results)
+    const conversationMessages: Anthropic.MessageParam[] = [];
+    for (const m of messages.filter((m) => m.role !== 'system')) {
+      if (m.role === 'tool' && m.tool_call_id) {
+        // Tool results in Anthropic format
+        conversationMessages.push({
+          role: 'user',
+          content: [{
+            type: 'tool_result',
+            tool_use_id: m.tool_call_id,
+            content: m.content,
+          }],
+        });
+      } else {
+        conversationMessages.push({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        });
+      }
+    }
+
+    // Convert OpenAI tool format to Anthropic format
+    const anthropicTools = tools?.map(t => ({
+      name: t.function.name,
+      description: t.function.description,
+      input_schema: {
+        type: 'object' as const,
+        properties: t.function.parameters.properties,
+        required: t.function.parameters.required,
+      },
+    }));
+
+    const requestParams: Anthropic.MessageCreateParams = {
       model,
       max_tokens: maxTokens,
       temperature,
       system: systemMessage?.content,
       messages: conversationMessages,
-    });
+    };
+
+    if (anthropicTools && anthropicTools.length > 0) {
+      requestParams.tools = anthropicTools;
+    }
+
+    const response = await this.anthropic.messages.create(requestParams);
+
+    // Check for tool use in response
+    const toolUseBlocks = response.content.filter((block) => block.type === 'tool_use');
+    if (toolUseBlocks.length > 0) {
+      const textBlock = response.content.find((block) => block.type === 'text');
+      return {
+        content: textBlock && textBlock.type === 'text' ? textBlock.text : '',
+        model: response.model,
+        usage: {
+          promptTokens: response.usage.input_tokens,
+          completionTokens: response.usage.output_tokens,
+          totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+        },
+        toolCalls: toolUseBlocks.map((block) => {
+          if (block.type !== 'tool_use') throw new Error('Expected tool_use block');
+          return {
+            id: block.id,
+            type: 'function' as const,
+            function: {
+              name: block.name,
+              arguments: JSON.stringify(block.input),
+            },
+          };
+        }),
+        finishReason: 'tool_calls',
+      };
+    }
 
     const textBlock = response.content.find((block) => block.type === 'text');
     if (!textBlock || textBlock.type !== 'text') {
@@ -158,6 +206,7 @@ export class ModelRouter {
         completionTokens: response.usage.output_tokens,
         totalTokens: response.usage.input_tokens + response.usage.output_tokens,
       },
+      finishReason: response.stop_reason === 'end_turn' ? 'stop' : 'stop',
     };
   }
 

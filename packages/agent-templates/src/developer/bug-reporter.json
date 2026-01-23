@@ -1,11 +1,11 @@
 {
   "name": "Bug Reporter",
   "description": "An AI assistant that collects bug reports from users, formats them, and creates GitHub issues",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": ["@elizagotchi/plugin-github"],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1000
   },
   "bio": [

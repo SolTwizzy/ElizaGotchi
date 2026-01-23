@@ -61,15 +61,27 @@ class AgentOrchestrator {
 
       console.log(`[AgentOrchestrator] Found ${agentsToRecover.length} agents to recover`);
 
+      // Recover agents one at a time with a delay between each
+      // This prevents migration lock contention and service registration timeouts
+      const RECOVERY_DELAY_MS = 5000; // 5 seconds between each agent
+      let recoveredCount = 0;
+
       for (const agent of agentsToRecover) {
         if (this.runningAgents.has(agent.id)) {
           // Already running in memory, skip
           continue;
         }
 
+        // Add delay between agents (except for the first one)
+        if (recoveredCount > 0) {
+          console.log(`[AgentOrchestrator] Waiting ${RECOVERY_DELAY_MS / 1000}s before next agent...`);
+          await new Promise(resolve => setTimeout(resolve, RECOVERY_DELAY_MS));
+        }
+
         try {
-          console.log(`[AgentOrchestrator] Recovering agent ${agent.id} (${agent.name})`);
+          console.log(`[AgentOrchestrator] Recovering agent ${recoveredCount + 1}/${agentsToRecover.length}: ${agent.id} (${agent.name})`);
           await this.startAgent(agent.id, agent.userId);
+          recoveredCount++;
         } catch (error) {
           console.error(`[AgentOrchestrator] Failed to recover agent ${agent.id}:`, error);
           // Mark as error so user knows to manually restart
@@ -78,7 +90,7 @@ class AgentOrchestrator {
         }
       }
 
-      console.log('[AgentOrchestrator] Recovery complete');
+      console.log(`[AgentOrchestrator] Recovery complete (${recoveredCount}/${agentsToRecover.length} agents recovered)`);
     } catch (error) {
       console.error('[AgentOrchestrator] Error during recovery:', error);
     }
@@ -333,9 +345,7 @@ class AgentOrchestrator {
           customization,
           agentConfig,
           databaseUrl: process.env.DATABASE_URL,
-          modelProvider: template.modelProvider as 'openai' | 'anthropic',
           apiKeys: {
-            openai: process.env.OPENAI_API_KEY,
             anthropic: process.env.ANTHROPIC_API_KEY,
           },
           telegram,

@@ -1,11 +1,11 @@
 {
   "name": "Airdrop Hunter",
   "description": "An AI assistant that tracks airdrop eligibility and alerts when tokens are claimable",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": ["@elizagotchi/plugin-blockchain"],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1000
   },
   "bio": [

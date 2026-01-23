@@ -393,7 +393,7 @@ export default function NewAgentPage() {
                 {isPremiumModel && (
                   <div className="space-y-2 pt-2">
                     <Label htmlFor="apiKey" className="text-white">
-                      {modelConfig.provider === 'openai' ? 'OpenAI' : 'Anthropic'} API Key
+                      Anthropic API Key
                       <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -401,20 +401,14 @@ export default function NewAgentPage() {
                       type="password"
                       value={customApiKey}
                       onChange={(e) => setCustomApiKey(e.target.value)}
-                      placeholder={modelConfig.provider === 'openai' ? 'sk-...' : 'sk-ant-...'}
+                      placeholder="sk-ant-..."
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
                     />
                     <p className="text-xs text-white/50">
                       Your API key is encrypted and only used for this agent. Get your key from{' '}
-                      {modelConfig.provider === 'openai' ? (
-                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">
-                          OpenAI Dashboard
-                        </a>
-                      ) : (
-                        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">
-                          Anthropic Console
-                        </a>
-                      )}
+                      <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">
+                        Anthropic Console
+                      </a>
                     </p>
                   </div>
                 )}

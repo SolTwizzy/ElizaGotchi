@@ -1,11 +1,11 @@
 {
   "name": "Market Scanner",
   "description": "An AI assistant that monitors news sources and sends curated digests",
-  "modelProvider": "openai",
+  "modelProvider": "anthropic",
   "clients": [],
   "plugins": ["@elizagotchi/plugin-rss"],
   "settings": {
-    "model": "gpt-4o-mini",
+    "model": "claude-3-5-haiku-20241022",
     "maxTokens": 1500
   },
   "bio": [

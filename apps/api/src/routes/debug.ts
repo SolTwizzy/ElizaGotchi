@@ -562,3 +562,51 @@ debugRoutes.get('/orphan-counts', async (c) => {
     return c.json({ error: String(error), counts }, 500);
   }
 });
+
+// Restart an agent (stop then start)
+debugRoutes.post('/agents/:id/restart', async (c) => {
+  const agentId = c.req.param('id');
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    return c.json({ error: 'DATABASE_URL not set' }, 500);
+  }
+
+  const sql = postgres(connectionString);
+
+  try {
+    // Get agent details
+    const agents = await sql`
+      SELECT id, user_id, status FROM platform_agents WHERE id = ${agentId}
+    `;
+
+    if (agents.length === 0) {
+      await sql.end();
+      return c.json({ error: 'Agent not found' }, 404);
+    }
+
+    const agent = agents[0];
+    await sql.end();
+
+    console.log(`[Debug Restart] Restarting agent ${agentId}, current status: ${agent.status}`);
+
+    // Stop the agent first (if running)
+    try {
+      await agentOrchestrator.stopAgent(agent.id, agent.user_id);
+      console.log(`[Debug Restart] Agent ${agentId} stopped`);
+    } catch (stopError) {
+      console.log(`[Debug Restart] Stop error (may be expected):`, stopError);
+    }
+
+    // Small delay between stop and start
+    await new Promise(r => setTimeout(r, 500));
+
+    // Start the agent
+    await agentOrchestrator.startAgent(agent.id, agent.user_id);
+    console.log(`[Debug Restart] Agent ${agentId} started`);
+
+    return c.json({ success: true, message: `Agent ${agentId} restarted` });
+  } catch (error) {
+    console.error(`[Debug Restart] Error restarting agent ${agentId}:`, error);
+    return c.json({ error: String(error) }, 500);
+  }
+});

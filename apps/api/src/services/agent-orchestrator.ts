@@ -30,10 +30,53 @@ class AgentOrchestrator {
   private errorRestartInterval: ReturnType<typeof setInterval> | null = null;
   private recoveryInProgress: Set<string> = new Set();
   private retryAttempts: Map<string, RetryInfo> = new Map();
+  private startupCleanupDone: boolean = false;
 
   constructor() {
     this.startHeartbeatMonitor();
     this.startErrorRestartMonitor();
+  }
+
+  /**
+   * Reset stale agent statuses on server startup.
+   * This handles the case where agents were "running" when the server crashed/restarted.
+   * Call this during server initialization.
+   */
+  async cleanupStaleAgents(): Promise<void> {
+    if (this.startupCleanupDone) return;
+
+    try {
+      console.log('[Orchestrator] Cleaning up stale agent statuses...');
+
+      // Find all agents marked as running or starting
+      const staleAgents = await db.query.agents.findMany({
+        where: (agents, { inArray }) =>
+          inArray(agents.status, ['running', 'starting']),
+      });
+
+      if (staleAgents.length === 0) {
+        console.log('[Orchestrator] No stale agents found');
+        this.startupCleanupDone = true;
+        return;
+      }
+
+      // Reset them to stopped
+      for (const agent of staleAgents) {
+        await db
+          .update(agents)
+          .set({ status: 'stopped', updatedAt: new Date() })
+          .where(eq(agents.id, agent.id));
+
+        console.log(`[Orchestrator] Reset stale agent ${agent.name} (${agent.id}) from ${agent.status} to stopped`);
+      }
+
+      console.log(`[Orchestrator] Reset ${staleAgents.length} stale agents`);
+      this.startupCleanupDone = true;
+    } catch (error) {
+      console.error('[Orchestrator] Error cleaning up stale agents:', error);
+      // Don't block startup on cleanup errors
+      this.startupCleanupDone = true;
+    }
   }
 
   /**
@@ -166,7 +209,9 @@ class AgentOrchestrator {
   private startHeartbeatMonitor() {
     // Check agent health every 30 seconds
     this.heartbeatInterval = setInterval(() => {
-      this.checkAgentHealth();
+      this.checkAgentHealth().catch((err) => {
+        console.error('[Orchestrator] Heartbeat check error:', err);
+      });
     }, 30000);
   }
 
@@ -177,7 +222,9 @@ class AgentOrchestrator {
   private startErrorRestartMonitor() {
     // Check for error agents every 15 seconds
     this.errorRestartInterval = setInterval(() => {
-      this.checkAndRestartErrorAgents();
+      this.checkAndRestartErrorAgents().catch((err) => {
+        console.error('[Orchestrator] Error restart check error:', err);
+      });
     }, 15000);
   }
 
@@ -472,7 +519,18 @@ class AgentOrchestrator {
   async restartAgent(agentId: string, userId: string): Promise<void> {
     // Clear any retry tracking since this is a manual restart
     this.retryAttempts.delete(agentId);
-    await this.stopAgent(agentId, userId);
+
+    // Stop the agent (ignore errors if already stopped)
+    try {
+      await this.stopAgent(agentId, userId);
+    } catch (error) {
+      console.log(`[Orchestrator] Stop during restart (may be expected):`, error);
+    }
+
+    // Small delay between stop and start for cleanup
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Start the agent
     await this.startAgent(agentId, userId);
   }
 

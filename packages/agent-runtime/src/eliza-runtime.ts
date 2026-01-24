@@ -23,6 +23,38 @@ import { loadCharacterTemplate } from './character-loader';
 // Deterministic UUID namespace for room IDs - must match chat-history.ts
 const ROOM_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
+// Mutex for sequential agent initialization (ElizaOS has 30s timeout issues with concurrent inits)
+class InitMutex {
+  private queue: (() => void)[] = [];
+  private locked = false;
+  private releaseDelay = 2000; // 2 second delay between agent inits
+
+  async acquire(): Promise<void> {
+    if (!this.locked) {
+      this.locked = true;
+      return;
+    }
+
+    return new Promise<void>((resolve) => {
+      this.queue.push(resolve);
+    });
+  }
+
+  release(): void {
+    // Add a delay before releasing to give ElizaOS services time to settle
+    setTimeout(() => {
+      if (this.queue.length > 0) {
+        const next = this.queue.shift()!;
+        next();
+      } else {
+        this.locked = false;
+      }
+    }, this.releaseDelay);
+  }
+}
+
+const initMutex = new InitMutex();
+
 /**
  * Generate a deterministic UUID for a room based on agentId and userId.
  * This ensures the same room is always used for the same agent-user pair.
@@ -202,6 +234,10 @@ export class ElizaRuntime {
 
     this.state = 'initializing';
 
+    // Acquire mutex to prevent concurrent initialization (ElizaOS has 30s timeout issues)
+    await initMutex.acquire();
+    console.log(`[ElizaRuntime] Agent ${this.config.agentId} acquired init mutex`);
+
     try {
       // Ensure Anthropic API key is available in process.env for plugins that read it directly
       if (this.config.apiKeys?.anthropic && !process.env.ANTHROPIC_API_KEY) {
@@ -211,7 +247,7 @@ export class ElizaRuntime {
       // Increase provider timeout for slow embedding initialization (default is only 1000ms)
       // This helps when local embeddings need time to initialize on cold start
       if (!process.env.PROVIDERS_TOTAL_TIMEOUT_MS) {
-        process.env.PROVIDERS_TOTAL_TIMEOUT_MS = '30000'; // 30 seconds
+        process.env.PROVIDERS_TOTAL_TIMEOUT_MS = '60000'; // 60 seconds
       }
 
       // Load plugins dynamically
@@ -241,6 +277,10 @@ export class ElizaRuntime {
       console.error(`[ElizaRuntime] Failed to start agent:`, error);
       this.config.onError?.(error as Error);
       throw error;
+    } finally {
+      // Always release the mutex
+      initMutex.release();
+      console.log(`[ElizaRuntime] Agent ${this.config.agentId} released init mutex`);
     }
   }
 

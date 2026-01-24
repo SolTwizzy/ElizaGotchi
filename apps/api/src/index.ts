@@ -25,6 +25,7 @@ setTimeout(() => {
       return bootstrapDatabase();
     })
     .then(() => elizaMigrations.runMigrations())
+    .then(() => agentOrchestrator.cleanupStaleAgents())
     .then(() => botService.initialize())
     .then(() => {
       console.log('[API] Background init complete');

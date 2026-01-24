@@ -5,18 +5,23 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { TamagotchiDevice, calculateDevicePositions } from './TamagotchiDevice';
-import type { Agent } from '@/lib/api';
+import type { Agent, OrbitItem } from '@/lib/api';
 
 interface SceneProps {
   agents: Agent[];
   selectedAgentId: string | null;
   viewMode: 'galaxy' | 'planet';
   latestMessage?: string;
+  orbitItems?: OrbitItem[];
+  allOrbitItems?: Record<string, OrbitItem[]>;
+  launchAnimation?: { isActive: boolean; itemName: string };
   onSelectAgent: (agent: Agent) => void;
   onDeselectAgent: () => void;
   onFeed: (agent: Agent) => void;
   onChat: (agent: Agent) => void;
   onSettings: (agent: Agent) => void;
+  onOrbitItemClick?: (item: OrbitItem) => void;
+  onLaunchAnimationComplete?: () => void;
 }
 
 // Camera controller for smooth transitions
@@ -66,11 +71,16 @@ export default function Scene({
   selectedAgentId,
   viewMode,
   latestMessage,
+  orbitItems = [],
+  allOrbitItems = {},
+  launchAnimation,
   onSelectAgent,
   onDeselectAgent,
   onFeed,
   onChat,
   onSettings,
+  onOrbitItemClick,
+  onLaunchAnimationComplete,
 }: SceneProps) {
   // Calculate positions for all devices (circular layout)
   const positions = useMemo(
@@ -136,10 +146,14 @@ export default function Scene({
               viewMode={viewMode}
               showLabel={viewMode === 'galaxy'}
               latestMessage={isSelected ? latestMessage : undefined}
+              orbitItems={isSelected ? orbitItems : (allOrbitItems[agent.id] || [])}
+              launchAnimation={isSelected ? launchAnimation : undefined}
               onClick={() => onSelectAgent(agent)}
               onFeed={() => onFeed(agent)}
               onChat={() => onChat(agent)}
               onSettings={() => onSettings(agent)}
+              onOrbitItemClick={onOrbitItemClick}
+              onLaunchAnimationComplete={onLaunchAnimationComplete}
             />
           );
         })}

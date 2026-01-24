@@ -10,6 +10,7 @@ import { webhookRoutes } from './routes/webhooks';
 import { authRoutes } from './routes/auth';
 import { internalRoutes } from './routes/internal';
 import { debugRoutes } from './routes/debug';
+import { orbitRoutes } from './routes/orbit';
 import { telegramBotRouter } from './services/telegram-bot';
 import { botService } from './services/bot-service';
 import { bootstrapDatabase } from './services/db-bootstrap';
@@ -67,6 +68,7 @@ app.get('/health', (c) => {
 // API routes
 app.route('/api/auth', authRoutes);
 app.route('/api/agents', agentRoutes);
+app.route('/api/agents', orbitRoutes); // Orbit routes nested under /api/agents/:agentId/orbit
 app.route('/api/connections', connectionRoutes);
 app.route('/api/users', userRoutes);
 app.route('/api/webhooks', webhookRoutes);

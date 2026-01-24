@@ -248,3 +248,85 @@ export interface ChatMessage {
   timestamp: string;
   metadata?: Record<string, unknown>;
 }
+
+// Orbit Types
+export interface OrbitSnapshotData {
+  messages: Array<{
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: string;
+  }>;
+  context?: Record<string, unknown>;
+}
+
+export interface OrbitTaskConfig {
+  taskType: string;
+  params: Record<string, unknown>;
+}
+
+export interface OrbitItem {
+  id: string;
+  userId: string;
+  agentId: string;
+  name: string;
+  type: 'chat' | 'task' | 'monitor';
+  snapshotData: OrbitSnapshotData | null;
+  taskConfig: OrbitTaskConfig | null;
+  taskSnapshot: unknown | null;
+  taskSnapshotAt: string | null;
+  roomId: string | null;
+  isArchived: boolean;
+  orbitPosition: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateOrbitItemData {
+  name: string;
+  type: 'chat' | 'task' | 'monitor';
+  roomId?: string;
+  snapshotData?: OrbitSnapshotData;
+  taskConfig?: OrbitTaskConfig;
+}
+
+export interface UpdateOrbitItemData {
+  name?: string;
+  isArchived?: boolean;
+}
+
+// Orbit API
+export const orbitApi = {
+  // List orbit items for an agent
+  list: (agentId: string, includeArchived = false) =>
+    api.get<{ items: OrbitItem[] }>(
+      `/api/agents/${agentId}/orbit`,
+      includeArchived ? { includeArchived: 'true' } : undefined
+    ),
+
+  // Get single orbit item
+  get: (agentId: string, itemId: string) =>
+    api.get<{ item: OrbitItem }>(`/api/agents/${agentId}/orbit/${itemId}`),
+
+  // Create orbit item
+  create: (agentId: string, data: CreateOrbitItemData) =>
+    api.post<{ item: OrbitItem }>(`/api/agents/${agentId}/orbit`, data),
+
+  // Update orbit item
+  update: (agentId: string, itemId: string, data: UpdateOrbitItemData) =>
+    api.patch<{ item: OrbitItem }>(`/api/agents/${agentId}/orbit/${itemId}`, data),
+
+  // Delete orbit item
+  delete: (agentId: string, itemId: string) =>
+    api.delete(`/api/agents/${agentId}/orbit/${itemId}`),
+
+  // Get live task data (for task/monitor types)
+  getLive: (agentId: string, itemId: string) =>
+    api.get<{ item: OrbitItem; liveData: unknown; message?: string }>(
+      `/api/agents/${agentId}/orbit/${itemId}/live`
+    ),
+
+  // Get AI-suggested name for a conversation
+  suggestName: (agentId: string, messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
+    api.post<{ suggestedName: string }>(`/api/agents/${agentId}/orbit/suggest-name`, { messages }),
+};

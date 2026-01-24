@@ -76,6 +76,7 @@ export interface ElizaRuntimeConfig {
   databaseUrl?: string;
   apiKeys?: {
     anthropic?: string;
+    openai?: string; // Used for embeddings only (TEXT_EMBEDDING model)
   };
   // Platform integrations
   telegram?: {
@@ -152,8 +153,12 @@ function convertToElizaCharacter(
   // Determine which plugins to use
   const plugins: string[] = [];
 
-  // Always use Anthropic as the model provider
+  // Always use Anthropic as the model provider (for TEXT_GENERATION)
   plugins.push('@elizaos/plugin-anthropic');
+
+  // Use OpenAI for embeddings only (TEXT_EMBEDDING) - much cheaper than using Anthropic
+  // This allows semantic memory search while keeping Claude as the main LLM
+  plugins.push('@elizaos/plugin-openai');
 
   // Bootstrap plugin provides TaskService and EmbeddingGenerationService
   // Migrations are pre-run at server startup to avoid lock contention
@@ -244,6 +249,11 @@ export class ElizaRuntime {
         process.env.ANTHROPIC_API_KEY = this.config.apiKeys.anthropic;
       }
 
+      // Ensure OpenAI API key is available for embeddings (TEXT_EMBEDDING model)
+      if (this.config.apiKeys?.openai && !process.env.OPENAI_API_KEY) {
+        process.env.OPENAI_API_KEY = this.config.apiKeys.openai;
+      }
+
       // Increase provider timeout for slow embedding initialization (default is only 1000ms)
       // This helps when local embeddings need time to initialize on cold start
       if (!process.env.PROVIDERS_TOTAL_TIMEOUT_MS) {
@@ -259,9 +269,12 @@ export class ElizaRuntime {
         character: this.character,
         plugins: this.loadedPlugins,
         settings: {
-          // Pass Anthropic API key through settings
+          // Pass Anthropic API key through settings (for TEXT_GENERATION)
           ANTHROPIC_API_KEY:
             this.config.apiKeys?.anthropic || process.env.ANTHROPIC_API_KEY || '',
+          // Pass OpenAI API key through settings (for TEXT_EMBEDDING only)
+          OPENAI_API_KEY:
+            this.config.apiKeys?.openai || process.env.OPENAI_API_KEY || '',
           // plugin-sql expects POSTGRES_URL for external database connection
           POSTGRES_URL: this.config.databaseUrl || process.env.DATABASE_URL || '',
         },
@@ -293,6 +306,7 @@ export class ElizaRuntime {
     // Map of plugin names to their expected module exports
     const pluginMap: Record<string, string> = {
       '@elizaos/plugin-anthropic': 'anthropicPlugin',
+      '@elizaos/plugin-openai': 'openaiPlugin',
       '@elizaos/plugin-bootstrap': 'bootstrapPlugin',
       '@elizaos/plugin-sql': 'sqlPlugin',
       '@elizaos/plugin-telegram': 'telegramPlugin',

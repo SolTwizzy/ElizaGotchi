@@ -5,12 +5,23 @@ import { TamagotchiCanvas } from './TamagotchiCanvas';
 import { SoundProvider, useSound } from './SoundManager';
 import { AgentChatArea } from '../gotchi/agent-chat-area';
 import { HarvestOverlay } from './HarvestOverlay';
+import { SendToOrbitModal } from './SendToOrbitModal';
+import { OrbitItemModal } from './OrbitItemModal';
 import { getPlanetForAgentType } from './planets';
 import { Button } from '@/components/ui/button';
 import { X, ArrowLeft, Play, Pause, Square, RotateCcw, Settings, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAgentChat } from '@/hooks/use-agent-chat';
-import type { Agent } from '@/lib/api';
+import { useOrbitItems, useAllAgentsOrbitItems } from '@/hooks/use-orbit-items';
+import type { Agent, OrbitItem } from '@/lib/api';
+
+// UI display name overrides (temporary until database is updated)
+const getDisplayName = (name: string): string => {
+  const overrides: Record<string, string> = {
+    'Naruto Lore Keeper': 'Anime Lore Keeper',
+  };
+  return overrides[name] || name;
+};
 
 interface TamagotchiWorldProps {
   agents: Agent[];
@@ -38,6 +49,12 @@ function TamagotchiWorldInner({
   const [showChat, setShowChat] = useState(false);
   const [isHarvesting, setIsHarvesting] = useState(false);
   const [harvestQuery, setHarvestQuery] = useState('');
+  const [showSendToOrbitModal, setShowSendToOrbitModal] = useState(false);
+  const [selectedOrbitItem, setSelectedOrbitItem] = useState<OrbitItem | null>(null);
+  const [launchAnimation, setLaunchAnimation] = useState<{ isActive: boolean; itemName: string }>({
+    isActive: false,
+    itemName: '',
+  });
   const { playSound } = useSound();
 
   // Chat hook - connected to the selected agent
@@ -49,6 +66,12 @@ function TamagotchiWorldInner({
     error: chatError,
   } = useAgentChat(selectedAgent?.id ?? null);
 
+  // Orbit items hook - connected to the selected agent
+  const { data: orbitItems = [] } = useOrbitItems(selectedAgent?.id ?? null);
+
+  // Fetch orbit items for ALL agents (for galaxy view)
+  const agentIds = agents.map((a) => a.id);
+  const { data: allOrbitItems } = useAllAgentsOrbitItems(agentIds);
 
   // Clear messages when deselecting agent
   useEffect(() => {
@@ -136,6 +159,34 @@ function TamagotchiWorldInner({
     playSound('click');
   }, [playSound]);
 
+  // Orbit handlers
+  const handleSendToOrbit = useCallback(() => {
+    if (chatMessages.length > 0) {
+      setShowSendToOrbitModal(true);
+      playSound('click');
+    }
+  }, [chatMessages.length, playSound]);
+
+  const handleOrbitItemClick = useCallback((item: OrbitItem) => {
+    setSelectedOrbitItem(item);
+    playSound('click');
+  }, [playSound]);
+
+  const handleOrbitModalClose = useCallback(() => {
+    setSelectedOrbitItem(null);
+  }, []);
+
+  const handleSendToOrbitSuccess = useCallback((itemName: string) => {
+    // Start the launch animation
+    setLaunchAnimation({ isActive: true, itemName });
+    playSound('start');
+  }, [playSound]);
+
+  const handleLaunchAnimationComplete = useCallback(() => {
+    setLaunchAnimation({ isActive: false, itemName: '' });
+    playSound('happy');
+  }, [playSound]);
+
   // Update selected agent if it changes in the agents array
   const currentSelectedAgent = selectedAgent
     ? agents.find((a) => a.id === selectedAgent.id) || null
@@ -149,7 +200,7 @@ function TamagotchiWorldInner({
     }
     // Show welcome message when no chat history
     if (currentSelectedAgent) {
-      return `Hey there! I'm ${currentSelectedAgent.name}. How can I help you today?`;
+      return `Hey there! I'm ${getDisplayName(currentSelectedAgent.name)}. How can I help you today?`;
     }
     return undefined;
   }, [chatMessages, currentSelectedAgent]);
@@ -162,12 +213,17 @@ function TamagotchiWorldInner({
           agents={agents}
           selectedAgentId={currentSelectedAgent?.id || null}
           viewMode={viewMode}
-          latestMessage={latestAssistantMessage}
+          latestMessage={showSendToOrbitModal || selectedOrbitItem ? undefined : latestAssistantMessage}
+          orbitItems={showSendToOrbitModal || selectedOrbitItem ? [] : orbitItems}
+          allOrbitItems={showSendToOrbitModal || selectedOrbitItem ? {} : allOrbitItems}
           onSelectAgent={handleSelectAgent}
           onDeselectAgent={handleDeselectAgent}
           onFeed={handleFeed}
           onChat={handleChat}
           onSettings={handleSettingsClick}
+          onOrbitItemClick={handleOrbitItemClick}
+          launchAnimation={launchAnimation}
+          onLaunchAnimationComplete={handleLaunchAnimationComplete}
         />
       </div>
 
@@ -203,7 +259,7 @@ function TamagotchiWorldInner({
               <span className="text-sm">Back</span>
             </button>
             <div className="text-center">
-              <h3 className="font-semibold text-white">{currentSelectedAgent.name}</h3>
+              <h3 className="font-semibold text-white">{getDisplayName(currentSelectedAgent.name)}</h3>
               <p className="text-xs text-white/50 capitalize">
                 {currentSelectedAgent.type.replace(/-/g, ' ')}
               </p>
@@ -320,10 +376,12 @@ function TamagotchiWorldInner({
                   size="sm"
                   variant="ghost"
                   className="gap-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
-                  onClick={() => setShowChat(true)}
+                  onClick={handleSendToOrbit}
+                  disabled={chatMessages.length === 0}
+                  title={chatMessages.length === 0 ? 'Start a conversation first' : 'Save this chat to orbit'}
                 >
                   <Rocket className="w-4 h-4" />
-                  Launch Mission
+                  Send to Orbit
                 </Button>
               </div>
             </div>
@@ -333,7 +391,7 @@ function TamagotchiWorldInner({
           <div className="flex-1 h-[calc(100%-250px)]">
             <AgentChatArea
               agentType={currentSelectedAgent.type}
-              agentName={currentSelectedAgent.name}
+              agentName={getDisplayName(currentSelectedAgent.name)}
               status={currentSelectedAgent.status}
               messages={chatMessages}
               onSendMessage={sendChatMessage}
@@ -348,7 +406,7 @@ function TamagotchiWorldInner({
         <HarvestOverlay
           isActive={isHarvesting}
           agentType={currentSelectedAgent.type}
-          agentName={currentSelectedAgent.name}
+          agentName={getDisplayName(currentSelectedAgent.name)}
           query={harvestQuery}
           onComplete={handleHarvestComplete}
           onCancel={handleHarvestCancel}
@@ -362,6 +420,29 @@ function TamagotchiWorldInner({
             Click a device to interact with your Gotchi
           </p>
         </div>
+      )}
+
+      {/* Send to Orbit Modal */}
+      {currentSelectedAgent && (
+        <SendToOrbitModal
+          isOpen={showSendToOrbitModal}
+          onClose={() => setShowSendToOrbitModal(false)}
+          agentId={currentSelectedAgent.id}
+          agentName={getDisplayName(currentSelectedAgent.name)}
+          messages={chatMessages}
+          onSuccess={handleSendToOrbitSuccess}
+        />
+      )}
+
+      {/* Orbit Item Modal */}
+      {currentSelectedAgent && (
+        <OrbitItemModal
+          isOpen={selectedOrbitItem !== null}
+          onClose={handleOrbitModalClose}
+          item={selectedOrbitItem}
+          agentId={currentSelectedAgent.id}
+          agentName={getDisplayName(currentSelectedAgent.name)}
+        />
       )}
     </div>
   );

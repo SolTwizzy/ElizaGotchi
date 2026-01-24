@@ -19,6 +19,7 @@
     "@elizaos/core": "1.7.1",
     "@elizaos/plugin-anthropic": "1.5.12",
     "@elizaos/plugin-bootstrap": "1.7.1",
+    "@elizaos/plugin-openai": "1.6.0",
     "@elizaos/plugin-sql": "1.7.1",
     "@elizaos/plugin-telegram": "1.6.2",
     "uuid": "^9.0.0"

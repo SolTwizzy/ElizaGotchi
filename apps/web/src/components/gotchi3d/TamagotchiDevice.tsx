@@ -3,15 +3,18 @@
 import { useRef, useState, useMemo } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
+import { Html } from '@react-three/drei';
 import { DeviceShell } from './DeviceShell';
 import { DeviceScreen } from './DeviceScreen';
 import { DeviceButtons } from './DeviceButtons';
 import { SpeechBubble } from './SpeechBubble';
+import { OrbitBubbles } from './OrbitBubble';
+import { OrbitLaunchAnimation } from './OrbitLaunchAnimation';
 import { getAgentColors } from './sprites/pixelSprites';
 import { useSound } from './SoundManager';
 import { Planet, getPlanetForAgentType } from './planets';
 import { FloatingLabel } from './FloatingLabel';
-import type { Agent } from '@/lib/api';
+import type { Agent, OrbitItem } from '@/lib/api';
 
 interface TamagotchiDeviceProps {
   agent: Agent;
@@ -20,10 +23,14 @@ interface TamagotchiDeviceProps {
   viewMode: 'galaxy' | 'planet';
   showLabel?: boolean;
   latestMessage?: string;
+  orbitItems?: OrbitItem[];
+  launchAnimation?: { isActive: boolean; itemName: string };
   onClick: () => void;
   onFeed: () => void;
   onChat: () => void;
   onSettings: () => void;
+  onOrbitItemClick?: (item: OrbitItem) => void;
+  onLaunchAnimationComplete?: () => void;
 }
 
 export function TamagotchiDevice({
@@ -33,10 +40,14 @@ export function TamagotchiDevice({
   viewMode,
   showLabel = true,
   latestMessage,
+  orbitItems = [],
+  launchAnimation,
   onClick,
   onFeed,
   onChat,
   onSettings,
+  onOrbitItemClick,
+  onLaunchAnimationComplete,
 }: TamagotchiDeviceProps) {
   const isPlanetView = viewMode === 'planet';
   const groupRef = useRef<THREE.Group>(null);
@@ -153,12 +164,84 @@ export function TamagotchiDevice({
       )}
 
       {/* Planet - large and to the left in planet view, small beside device in galaxy view */}
-      <Planet
-        config={planetConfig}
-        position={isPlanetView ? [-5.5, 0, -2] : [1.2, 0, 0]}
-        scale={isPlanetView ? 1.4 : (isSelected ? 1.2 : 0.8)}
-        isActive={isSelected}
-      />
+      <group position={isPlanetView ? [-5.5, 0, -2] : [1.2, 0, 0]}>
+        <Planet
+          config={planetConfig}
+          position={[0, 0, 0]}
+          scale={isPlanetView ? 1.8 : (isSelected ? 1.2 : 0.8)}
+          isActive={isSelected}
+        />
+
+        {/* Orbit count indicator - only in planet view */}
+        {isPlanetView && orbitItems.length > 0 && (() => {
+          const count = orbitItems.filter(i => !i.isArchived).length;
+          const moonCount = Math.min(count, 6); // Cap at 6 moons for visual clarity
+          const moonColors = ['#fcd34d', '#f97316', '#06b6d4', '#ec4899', '#10b981', '#a855f7'];
+
+          return (
+            <Html
+              position={[0, 2.8, 0]}
+              center
+              style={{ pointerEvents: 'none' }}
+            >
+              <div className="flex items-center gap-4 whitespace-nowrap">
+                {/* Animated orbiting moons - count matches orbit items */}
+                <div className="relative w-10 h-10">
+                  <svg viewBox="0 0 40 40" className="w-10 h-10">
+                    {/* Orbit path */}
+                    <ellipse cx="20" cy="20" rx="16" ry="16" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" strokeDasharray="3 3" />
+                    {/* Multiple moons based on count */}
+                    {Array.from({ length: moonCount }).map((_, i) => {
+                      const offset = (i / moonCount) * 100;
+                      const dur = 3 + i * 0.5;
+                      const color = moonColors[i % moonColors.length];
+                      const size = 3.5 - i * 0.3;
+                      return (
+                        <g key={i}>
+                          <circle r={size} fill={color}>
+                            <animateMotion
+                              dur={`${dur}s`}
+                              repeatCount="indefinite"
+                              begin={`${-dur * (i / moonCount)}s`}
+                            >
+                              <mpath href="#orbitPath" />
+                            </animateMotion>
+                          </circle>
+                        </g>
+                      );
+                    })}
+                    {/* Hidden path for animateMotion */}
+                    <path id="orbitPath" d="M 36 20 A 16 16 0 1 1 36 19.99 Z" fill="none" />
+                  </svg>
+                </div>
+                <span
+                  className="text-3xl text-white font-diediedi"
+                  style={{ textShadow: '0 2px 10px rgba(0,0,0,0.4), 0 0 20px rgba(168,85,247,0.5)' }}
+                >
+                  {count}
+                </span>
+                <span
+                  className="text-xl text-white/95 uppercase font-diediedi"
+                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+                >
+                  in orbit
+                </span>
+              </div>
+            </Html>
+          );
+        })()}
+
+        {/* Orbit bubbles - show in both views, smaller in galaxy */}
+        {orbitItems.length > 0 && (
+          <OrbitBubbles
+            items={orbitItems}
+            planetRadius={isPlanetView ? 1.8 * 0.5 : 0.8 * 0.5}
+            onItemClick={onOrbitItemClick || (() => {})}
+            showLabels={isPlanetView}
+            scale={isPlanetView ? 1.2 : 0.5}
+          />
+        )}
+      </group>
 
       {/* Device group - larger in planet view for visibility */}
       <group position={isPlanetView ? [0, 0, 0] : [0, 0, 0]} scale={isPlanetView ? 2.5 : 1}>
@@ -188,11 +271,20 @@ export function TamagotchiDevice({
       </group>
 
       {/* Speech bubble - outside scaled group to render correctly */}
-      {isPlanetView && latestMessage && (
+      {isPlanetView && latestMessage && !launchAnimation?.isActive && (
         <SpeechBubble
           message={latestMessage}
           position={[2.5, 1.5, 0]}
           maxWidth={220}
+        />
+      )}
+
+      {/* Orbit launch animation */}
+      {isPlanetView && (
+        <OrbitLaunchAnimation
+          isActive={launchAnimation?.isActive || false}
+          itemName={launchAnimation?.itemName || ''}
+          onComplete={onLaunchAnimationComplete}
         />
       )}
     </group>

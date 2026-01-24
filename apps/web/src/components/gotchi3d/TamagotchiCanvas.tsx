@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { Agent } from '@/lib/api';
+import type { Agent, OrbitItem } from '@/lib/api';
 
 // Dynamically import the 3D scene with SSR disabled
 // Three.js cannot run on the server
@@ -22,11 +22,16 @@ interface TamagotchiCanvasProps {
   selectedAgentId: string | null;
   viewMode: 'galaxy' | 'planet';
   latestMessage?: string;
+  orbitItems?: OrbitItem[];
+  allOrbitItems?: Record<string, OrbitItem[]>;
+  launchAnimation?: { isActive: boolean; itemName: string };
   onSelectAgent: (agent: Agent) => void;
   onDeselectAgent: () => void;
   onFeed: (agent: Agent) => void;
   onChat: (agent: Agent) => void;
   onSettings: (agent: Agent) => void;
+  onOrbitItemClick?: (item: OrbitItem) => void;
+  onLaunchAnimationComplete?: () => void;
 }
 
 export function TamagotchiCanvas(props: TamagotchiCanvasProps) {

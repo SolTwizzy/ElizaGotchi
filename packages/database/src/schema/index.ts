@@ -5,12 +5,14 @@ export * from './users';
 export * from './agents';
 export * from './connections';
 export * from './subscriptions';
+export * from './orbit';
 
 // Import tables for relations
 import { users, sessions, oauthAccounts } from './users';
 import { agents, agentLogs } from './agents';
 import { connections, agentConnections } from './connections';
 import { subscriptions } from './subscriptions';
+import { orbitItems } from './orbit';
 
 // Define all relations in one place to avoid circular dependencies
 export const usersRelations = relations(users, ({ many, one }) => ({
@@ -22,6 +24,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     fields: [users.id],
     references: [subscriptions.userId],
   }),
+  orbitItems: many(orbitItems),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -45,6 +48,7 @@ export const agentsRelations = relations(agents, ({ one, many }) => ({
   }),
   logs: many(agentLogs),
   agentConnections: many(agentConnections),
+  orbitItems: many(orbitItems),
 }));
 
 export const agentLogsRelations = relations(agentLogs, ({ one }) => ({
@@ -77,5 +81,16 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   user: one(users, {
     fields: [subscriptions.userId],
     references: [users.id],
+  }),
+}));
+
+export const orbitItemsRelations = relations(orbitItems, ({ one }) => ({
+  user: one(users, {
+    fields: [orbitItems.userId],
+    references: [users.id],
+  }),
+  agent: one(agents, {
+    fields: [orbitItems.agentId],
+    references: [agents.id],
   }),
 }));

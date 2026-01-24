@@ -28,9 +28,15 @@ interface AgentPanelHeaderProps {
   className?: string;
 }
 
+// UI display name overrides (temporary until database is updated)
+const displayNameOverrides: Record<string, string> = {
+  'Naruto Lore Keeper': 'Anime Lore Keeper',
+};
+
 export function AgentPanelHeader({ name, agentType, onClick, className }: AgentPanelHeaderProps) {
   const theme = getAgentTheme(agentType);
   const icon = agentIcons[agentType] || '🤖';
+  const displayName = displayNameOverrides[name] || name;
 
   // Format agent type for display
   const formattedType = agentType
@@ -53,7 +59,7 @@ export function AgentPanelHeader({ name, agentType, onClick, className }: AgentP
         <span className="text-lg flex-shrink-0">{icon}</span>
         <div className="min-w-0 text-left">
           <h3 className="font-semibold text-white truncate text-sm">
-            {name}
+            {displayName}
           </h3>
           <p className="text-xs text-white/50 truncate">
             {formattedType}
